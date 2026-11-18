@@ -174,6 +174,12 @@ details[open]>summary::before{transform:rotate(90deg)}
 .toast b{color:var(--reward)}
 @keyframes pop{from{transform:translate(-50%,10px);opacity:.3}to{transform:translate(-50%,0);opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.tf{display:none}
+form[data-ttype="hard"] .tf-date, form[data-ttype="target"] .tf-date, form[data-ttype="horizon"] .tf-days, form[data-ttype="ongoing"] .tf-per{display:flex}
+.mlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mlist span{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--muted)}
+.mlist span.d{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.mlist span.c{border-color:var(--accent);color:var(--ink)}
 .parsed{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;display:grid;gap:8px}
 .parsed .row input[type=text]{flex:1;min-width:160px}
 .q{background:var(--reward-soft);border-radius:10px;padding:10px 12px;font-size:15px}
@@ -289,11 +295,42 @@ function templateFor(t){
       steps:[["Write what done looks like in one line",3,"Finish: “This is finished when…”"],["Do the first 10 minutes",10,"Start with the most obvious piece."],["Keep going for 20 minutes",20,"Same piece, or the next obvious one."],["Write down the next step",3,"One line for next time."]]
     }
   }[k];
+  const mk = ([text,min,how], ms) => ({id:uid(), text, min, how:how||"", done:false, ...(ms!=null?{ms}:{})});
+  if(isProject(t) && (k==="write"||k==="build"||k==="other")){
+    const M = {
+      write:[
+        {name:"Outline", deliverable:"Headline, central claim and section headings", criteria:["A working headline","The central claim in one sentence","Three section headings"], steps:T.steps.slice(0,4)},
+        {name:"Rough draft", deliverable:"A complete draft that reads start to finish", criteria:["Introduction written","Every section has its argument","A conclusion exists","Readable start to finish"], steps:T.steps.slice(4)},
+        {name:"Revised draft", deliverable:"A tighter draft with a clear argument", criteria:["Each section makes one point","Anything off-claim is cut","Read aloud once"], steps:[["Re-read and mark the weakest section",10,"Read once without editing; put a mark next to the weakest part."],["Rewrite the weakest section",25,"Say its point in one line first, then rewrite under it."],["Cut about 10% of the words",20,"Delete repeats, throat-clearing and anything off-claim."],["Read it aloud and fix what trips you up",15,"Wherever you stumble, simplify the sentence."]]},
+        {name:"Published", deliverable:"Live and shared", criteria:["Final headline and subtitle","Formatted for the platform","Published","Shared once"], steps:[["Write the final headline and subtitle",10,"Write three options, pick one."],["Format it in your publishing tool",15,"Paste it in, add headings and one image or pull quote."],["Publish it",5,"Press publish and open the live link."],["Share the link once",5,"One post or message. That's enough."]]}
+      ],
+      build:[
+        {name:"Scope defined", deliverable:"A one-line outcome and a must-have list", criteria:["Outcome written in one sentence","Must-have features listed","Everything else parked for later"], steps:[["Write the outcome in one sentence",5,"Finish: “This is done when a user can…”"],["List the must-have features",10,"Only what the outcome can't work without."],["Move everything else to a later list",5,"Cut freely. Later is not never."]]},
+        {name:"Core flow works", deliverable:"The main user flow works end to end", criteria:T.criteria, steps:T.steps},
+        {name:"Usable by one real person", deliverable:"Someone else used it and you saw where they got stuck", criteria:["One person tried it","Their sticking points are written down","The top issue is fixed"], steps:[["Fix the most confusing part of the flow",25,"Go through it yourself and fix the first thing that feels clumsy."],["Ask one person to try it",10,"Send it to one person with one sentence of context."],["Write down where they got stuck",10,"Their words, not your interpretation."],["Fix the top issue",25,"Only the top one."]]},
+        {name:"Ready to share", deliverable:"Deployed, described and shared with a first group", criteria:["Next two issues fixed","Short description written","Deployed","Shared with a first group"], steps:[["Fix the next two issues",40,"Same as before: one at a time."],["Write a short description of what it does",15,"Three sentences: who it's for, what it does, how to start."],["Deploy or package it",20,"Get it to a link someone else can open."],["Share it with a first group",10,"A small group you trust."]]}
+      ],
+      other:[
+        {name:"Outcome defined", deliverable:"A one-line outcome and a list of pieces", criteria:["Outcome in one sentence","3 to 5 pieces of work listed"], steps:[["Write what finished looks like in one sentence",5,"Finish: “This is finished when…”"],["List the 3 to 5 pieces of work it needs",10,"Small, concrete pieces in order."]]},
+        {name:"First piece done", deliverable:"The first piece of work exists", criteria:["First piece done","Checked against the outcome"], steps:[["Do the first piece",25,"Start with the one you understand best."],["Check it against the outcome",5,"Does it move you toward the sentence you wrote?"]]},
+        {name:"Remaining pieces done", deliverable:"All the pieces exist", criteria:["Every listed piece is done"], steps:[["Do the next piece",25,""],["Do the next piece",25,""],["Do the last piece",25,""]]},
+        {name:"Finished and checked", deliverable:"Checked and closed out", criteria:["Checked against the outcome","Sent, filed or shared"], steps:[["Check everything against the outcome",15,""],["Close it out: send, file or share it",10,""]]}
+      ]
+    }[k];
+    const steps = []; M.forEach((m,i)=>m.steps.forEach(st=>steps.push(mk(st,i))));
+    return {
+      dod:{outcome: t.scope || T.outcome, deliverable:M[M.length-1].deliverable, criteria:M.map(m=>m.name), quality:"Each milestone has its own finish line. Stop and check at each one.", scope:t.scope?`Scope you set: ${t.scope}`:"Scope is my proposal. Edit it if it's bigger or smaller than you meant.", stop:"Stop at the end of each milestone and check it.", verify:"Every milestone is checked off."},
+      milestones: M.map(m=>({name:m.name, deliverable:m.deliverable, criteria:m.criteria})),
+      steps
+    };
+  }
   return {
     dod:{outcome:T.outcome, deliverable:T.deliverable, criteria:T.criteria, quality:T.quality, scope:T.scope, stop:T.stop, verify:T.verify},
-    steps:T.steps.map(([text,min,how])=>({id:uid(), text, min, how, done:false}))
+    milestones:null,
+    steps:T.steps.map(st=>mk(st))
   };
 }
+const isProject = t => { const ty = (t.timing||{}).type; return (ty==="target"||ty==="horizon") && ["write","build","other"].includes(t.kind||kindOf(t.name)) && !(t.estMin && t.estMin<150); };
 
 /* ============ natural-language capture (rule-based fallback) ============ */
 function parseDeadline(s){
@@ -309,6 +346,84 @@ function parseDeadline(s){
   m = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? (\d{1,2})\b/); if(m){ const y=new Date().getFullYear(); let d=iso(new Date(y,MO.map(x=>x.toLowerCase()).indexOf(m[1]),+m[2])); if(daysUntil(d)<-30) d=iso(new Date(y+1,MO.map(x=>x.toLowerCase()).indexOf(m[1]),+m[2])); return d; }
   return null;
 }
+/* ============ timing model ============
+   hard: an externally imposed date (never invented)
+   target: a date the person wants; it can move
+   horizon: a window (asap, 30 days, 60 days…) or no preference; the scheduler projects a finish
+   ongoing: no end; a pace in sessions per week */
+const HORIZONS = [["asap","As soon as possible"],["14","Within 2 weeks"],["30","Within a month"],["60","Within 2 months"],["90","Within 3 months"],["none","No preference, suggest one"]];
+const NUMW = {one:1,once:1,two:2,twice:2,three:3,four:4,five:5,six:6,seven:7,a:1};
+function parseTiming(s, area){
+  const t = s.toLowerCase(); let m;
+  const quote = q => (q||"").trim();
+  if((m = t.match(/\b(\d|one|two|three|four|five|six|seven|once|twice)\s*(x|times)?\s*(a|per|each|every)\s*week\b/))) return {type:"ongoing", perWeek:clamp(NUMW[m[1]]||+m[1]||2,1,7), quote:quote(m[0])};
+  if((m = t.match(/\b(every ?day|daily|each day)\b/))) return {type:"ongoing", perWeek:5, quote:quote(m[0])};
+  if((m = t.match(/\b(weekly|every week|each week)\b/))) return {type:"ongoing", perWeek:1, quote:quote(m[0])};
+  if((m = t.match(/\b(ongoing|regularly|on a regular basis|keep up with|keep (?:doing|working on|studying|practicing|writing|reading)|maintain|as a habit)\b/))) return {type:"ongoing", perWeek:2, quote:quote(m[0])};
+  const date = parseDeadline(s);
+  if(date){
+    const hardWords = /\b(due|deadline|exam|midterm|final|test|quiz|submit|submission|homework|assignment|bill|rent|tax(es)?|appointment|interview|flight|filing|class|lecture|application closes)\b/;
+    const wishWords = /\b(ideally|hopefully|hope|aim|would like|i'?d like|want(?: it| this)?|target|goal|try to|if possible)\b/;
+    const dm = t.match(/\b(by |before |on |due |until )?(today|tonight|tomorrow|this weekend|next week|end of (the )?week|in \d+ days?|(next |this )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\d{1,2}\/\d{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2})\b/);
+    const hard = hardWords.test(t) && !wishWords.test(t);
+    return {type: hard?"hard":"target", date, quote:quote(dm?dm[0]:"")};
+  }
+  if((m = t.match(/\b(asap|as soon as (?:possible|i can)|urgently|right away|immediately)\b/))) return {type:"horizon", days:"asap", quote:quote(m[0])};
+  if((m = t.match(/\b(?:ideally |roughly |about )?(?:within|in|over) (?:the next )?(a|one|two|three|four|six|\d+) (day|week|month)s?\b/))){ const n=NUMW[m[1]]||+m[1]||1; const d = m[2]==="day"?n : m[2]==="week"?n*7 : n*30; return {type:"horizon", days:String(d), quote:quote(m[0])}; }
+  if((m = t.match(/\b(this month|by the end of the month|end of the month)\b/))){ const n=new Date(); const end=new Date(n.getFullYear(), n.getMonth()+1, 0); return {type:"target", date:iso(end), quote:quote(m[0])}; }
+  if((m = t.match(/\b(no rush|someday|eventually|when i can|whenever|at some point)\b/))) return {type:"horizon", days:"90", quote:quote(m[0])};
+  return null;
+}
+const TIMING_STRIP = /\b(i (?:really )?(?:want|would like|'d like|need) (?:this|it|that) (?:to be )?(?:done|finished|completed?)|ideally|hopefully|as soon as (?:possible|i can)|asap|urgently|right away|(?:roughly |about )?(?:within|over) (?:the next )?(?:a|one|two|three|four|six|\d+) (?:days?|weeks?|months?)|in (?:the next )?(?:a|one|two|three|four|six|\d+) (?:weeks?|months?)|no rush|someday|eventually|when i can|whenever|at some point|this month|by the end of the month|end of the month|(?:\d|one|two|three|four|five|six|seven|once|twice) ?(?:x |times )?(?:a|per|each|every) week|every ?day|daily|each day|weekly|every week|each week|on a regular basis|regularly|ongoing)\b/gi;
+function setTiming(t, tm){
+  tm = Object.assign({}, tm);
+  if(!["hard","target","horizon","ongoing"].includes(tm.type)) tm.type = "horizon";
+  if((tm.type==="hard"||tm.type==="target") && !/^\d{4}-\d{2}-\d{2}$/.test(tm.date||"")) { tm.type="horizon"; tm.date=null; }
+  if(tm.type==="horizon"){ tm.days = tm.days==null ? "none" : String(tm.days); tm.asap = tm.days==="asap"; tm.windowEnd = /^\d+$/.test(tm.days) ? addDays(todayISO(), +tm.days) : null; }
+  if(tm.type==="ongoing") tm.perWeek = clamp(+tm.perWeek||2,1,7);
+  const prev = t.timing || {};
+  if(prev.proposed && tm.type!=="hard" && tm.type!=="ongoing"){ tm.proposed = prev.proposed; tm.anchorDate = prev.anchorDate; }
+  t.timing = tm;
+  t.deadline = tm.type==="hard" ? tm.date : null;
+  t.deadlineSource = t.deadline ? "stated" : null;
+  t.cycles = t.cycles || [];
+  return t;
+}
+function migrate(st){
+  (st.tasks||[]).forEach(t=>{ if(!t.timing) setTiming(t, t.deadline ? {type: t.deadlineSource==="assumed"?"target":"hard", date:t.deadline} : {type:"horizon", days:"none"}); t.cycles=t.cycles||[]; });
+  return st;
+}
+const softDate = t => { const tm=t.timing||{}; if(tm.type==="target") return tm.date; if(tm.type==="horizon"){ if(tm.windowEnd && tm.proposed) return tm.proposed<tm.windowEnd?tm.proposed:tm.windowEnd; return tm.windowEnd||tm.proposed||null; } return null; };
+const cyclesIn = (t, days) => (t.cycles||[]).filter(x=>Date.now()-x < days*DAY).length;
+const doneToday = t => (t.cycles||[]).some(x=>iso(x)===todayISO());
+const quotaLeft = t => Math.max(0, (t.timing.perWeek||0) - cyclesIn(t,7));
+const sessionMin = t => Math.min(45, t.steps.reduce((a,s)=>a+est(t,s),0));
+function ongoingDueToday(t){
+  if(doneToday(t) || quotaLeft(t)<=0) return false;
+  const last = (t.cycles||[]).slice(-1)[0]; if(!last) return true;
+  const gap = Math.max(1, Math.floor(7/t.timing.perWeek));
+  return (parseISO(todayISO()) - parseISO(iso(last)))/DAY >= gap;
+}
+const minutesLast7 = t => t.steps.filter(s=>s.done && s.doneAt && Date.now()-s.doneAt<7*DAY).reduce((a,s)=>a+est(t,s),0);
+const daysBetween = (a,b) => Math.round((parseISO(b)-parseISO(a))/DAY);
+const fmtShort = d => { const n=daysUntil(d); if(n>=0 && n<7) return relDay(d); const x=parseISO(d); return x.getDate()+" "+MO[x.getMonth()]; };
+const horizonName = d => (HORIZONS.find(h=>h[0]===String(d))||[0,""])[1];
+function timingTag(t){
+  const tm = t.timing||{};
+  if(tm.type==="hard") return `<span class="tag ${daysUntil(tm.date)<=1?"warn":""}">Due ${esc(relDay(tm.date))} · hard deadline</span>`;
+  if(tm.type==="target") return `<span class="tag">Target ${esc(fmtShort(tm.date))}${tm.over&&tm.proposed?` · on pace for ${esc(fmtShort(tm.proposed))}`:""}</span>`;
+  if(tm.type==="ongoing") return `<span class="tag">Ongoing · ${tm.perWeek}× a week · ${tm.perWeek-quotaLeft(t)} done this week</span>`;
+  const w = tm.asap ? "As soon as possible" : tm.windowEnd ? horizonName(tm.days) : "No date set";
+  return `<span class="tag">${esc(w)}${tm.proposed?` · ${tm.windowEnd||tm.asap?"projected":"suggested"} ${esc(fmtShort(tm.proposed))}`:""}</span>`;
+}
+function timingSentence(t){
+  const tm=t.timing||{};
+  if(tm.type==="hard") return `Hard deadline: ${fmtDay(tm.date)}.`;
+  if(tm.type==="target") return `Target: ${fmtDay(tm.date)}. You can move it.`;
+  if(tm.type==="ongoing") return `Ongoing, about ${tm.perWeek} session${tm.perWeek>1?"s":""} a week. No finish date.`;
+  return tm.proposed ? `${tm.asap?"As soon as possible":tm.windowEnd?horizonName(tm.days):"No date given"}. At your current pace, about ${fmtDay(tm.proposed)}.` : "No date given.";
+}
+
 function ruleParse(text){
   const VERBS = "need|have|want|should|must|finish|work|draft|write|study|read|call|email|build|do|prepare|submit|book|pay|clean|start|review|fix|send|plan|practice|learn|apply|ship|launch|make|get|update";
   const parts = text.split(new RegExp(`\\n+|;|\\.\\s+|,\\s*(?:and\\s+)?(?:then\\s+)?|\\s+and\\s+(?=(?:also\\s+)?(?:i\\s+)?(?:${VERBS})\\b)`,"i"));
@@ -316,21 +431,30 @@ function ruleParse(text){
   for(let p of parts){
     p = p.trim().replace(/\.$/,"");
     if(p.length < 3) continue;
-    const deadline = parseDeadline(p);
-    let name = p.replace(/^(and |also |then |plus )+/i,"").replace(/^(i (really )?(need|have|want|should|must|gotta|got) to|i'?ve got to|need to|have to|gotta|must|should|i should|i will|i'll|todo:?|to do:?)\s+/i,"")
+    const timing = parseTiming(p);
+    const bare = p.replace(TIMING_STRIP,"").replace(/\b(and|but|so|i|really|want|would like|need|this|it|that|to be|done|finished|completed?|please|by|before)\b/gi,"").replace(/[^a-z0-9]/gi,"");
+    if(timing && out.length && bare.length<3){ out[out.length-1].timing = timing; continue; }
+    if(/^(i (want|would like|'d like) (this|it|that)|(this|it) should)/i.test(p) && out.length){ if(timing) out[out.length-1].timing = timing; continue; }
+    let name = p.replace(TIMING_STRIP,"").replace(/^(and |also |then |plus )+/i,"").replace(/^(i (really )?(need|have|want|should|must|gotta|got) to|i'?ve got to|need to|have to|gotta|must|should|i should|i will|i'll|todo:?|to do:?)\s+/i,"")
       .replace(/\b(by|before|on|due|for)?\s*(today|tonight|tomorrow|this weekend|next week|end of (the )?week|in \d+ days?|(next |this )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\d{1,2}\/\d{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2})\b/ig,"")
       .replace(/\s+(which is |it's |its )?(due|by)\s*$/i,"").replace(/\s{2,}/g," ").trim();
+    name = name.replace(/[,\s]+$/,"").replace(/^[,\s]+/,"");
     if(!name) continue;
     name = name[0].toUpperCase()+name.slice(1);
     let area = "Other"; for(const [a,v] of Object.entries(AREAS)) if(v.kw.test(p)){ area=a; break; }
     const kind = kindOf(name);
     const waiting = /\b(for (my |the )?(team|cofounder|co-founder|client|boss|professor|group)|waiting|promised|owe)\b/i.test(p);
-    out.push({ name, area, deadline, deadlineSource: deadline?"stated":null, kind,
-      importance: area==="Startup"||area==="University"?3:2, consequence: deadline && /homework|exam|assignment|submit|rent|tax|bill/i.test(p)?3:2,
+    let tm = timing;
+    if(!tm) tm = (kind==="study" && area==="Independent study" && !/\b(chapter|book|article|paper|reading for)\b/i.test(p)) ? {type:"ongoing", perWeek:2, quote:"", assumed:true} : {type:"horizon", days:"none", quote:""};
+    out.push({ name, area, timing:tm, kind,
+      importance: area==="Startup"||area==="University"?3:2, consequence: tm.type==="hard" && /homework|exam|assignment|submit|rent|tax|bill/i.test(p)?3:2,
       othersWaiting: waiting, difficulty: kind==="admin"?1:kind==="study"?2:3, friction: kind==="admin"?1:kind==="write"||kind==="problem"?3:2,
       estMin: null, dependsOn: [] });
   }
-  const questions = out.filter(t=>t.area==="University" && !t.deadline && t.kind==="problem").slice(0,2).map(t=>({task:t.name, question:`When is “${t.name}” due?`, why:"A due date changes where it goes this week."}));
+  const questions = [
+    ...out.filter(t=>t.area==="University" && t.timing.type!=="hard" && t.kind==="problem").map(t=>({task:t.name, kind:"due", question:`Is “${t.name}” due on a set date?`, why:"A real due date changes where it goes. If there isn't one, skip this."})),
+    ...out.filter(t=>(t.kind==="build"||t.kind==="other") && t.timing.type!=="hard" && t.timing.type!=="ongoing" && /^(work on|build|make|improve|grow|start|do|finish|launch|ship)\b/i.test(t.name)).map(t=>({task:t.name, kind:"scope", question:`What counts as finished for “${t.name}”?`, why:"I'll build the milestones around your answer. Skip it and I'll propose a scope you can edit."}))
+  ].slice(0,2);
   return {tasks: out, questions};
 }
 
@@ -347,38 +471,73 @@ async function ai(prompt, tier){
 async function aiParse(text){
   const areas = Object.keys(AREAS).join(", ");
   const prompt = `You structure brain dumps for a person with ADHD. Today is ${fmtDay(todayISO())} (${todayISO()}).
-Turn the text below into tasks. Keep the person's wording for task names but make each one short and concrete. Do not invent tasks.
+Turn the text below into tasks. Keep the person's wording for task names but make each one short and concrete. Do not invent tasks. A sentence that only describes timing ("I want this finished ASAP") belongs to the task before it.
 Areas must be one of: ${areas}.
-For deadlines: only use one that is stated or strongly implied; give it as YYYY-MM-DD and set deadlineSource to "stated" or "assumed". Otherwise null.
-Rate importance (long-term goal value) and consequence (cost of missing it) 1-3, difficulty (cognitive load) 1-3, friction (how hard it is to start) 1-3, estMin (total minutes, realistic, people underestimate), kind one of write|problem|study|build|admin|other.
+TIMING. Classify each task's timing as one of:
+- "hard": ONLY an externally imposed, non-negotiable date the text states (due date, exam, bill, submission, appointment). Never invent or assume a hard deadline.
+- "target": a date the person would like ("ideally by Friday", "I'd like it done by the 30th"). Adjustable.
+- "horizon": a window without a date ("as soon as possible" -> "asap", "ideally within a month" -> 30, "in the next two months" -> 60, "no rush" -> 90). If nothing about timing is said, use horizon with horizonDays null.
+- "ongoing": a responsibility with no end ("study anthropology", "keep writing on Substack", "go to the gym 3 times a week"). Give perWeek (sessions per week; default 2 if unstated).
+Dates are YYYY-MM-DD. "quote" holds the person's exact timing words, or "".
+Rate importance (long-term goal value) and consequence (cost of missing it) 1-3, difficulty (cognitive load) 1-3, friction (how hard to start) 1-3, estMin (total minutes for the whole thing, realistic; people underestimate), kind one of write|problem|study|build|admin|other.
 dependsOn lists names of other tasks in this list that must be done first.
-Only ask a question if the missing answer would materially change scheduling (at most 2).
-Reply with only JSON: {"tasks":[{"name":"","area":"","deadline":null,"deadlineSource":null,"importance":2,"consequence":2,"othersWaiting":false,"difficulty":2,"friction":2,"estMin":60,"kind":"other","dependsOn":[]}],"questions":[{"task":"","question":"","why":""}]}
+Questions (at most 2): ask only when the answer would materially change the plan. For an open-ended project whose finished state is unclear ("work on the MVP"), ask what counts as finished (kind "scope"). For schoolwork that likely has a due date not given, ask if it has one (kind "due").
+Reply with only JSON: {"tasks":[{"name":"","area":"","timing":{"type":"horizon","date":null,"horizonDays":null,"perWeek":null,"quote":""},"importance":2,"consequence":2,"othersWaiting":false,"difficulty":2,"friction":2,"estMin":60,"kind":"other","dependsOn":[]}],"questions":[{"task":"","kind":"scope","question":"","why":""}]}
 
 Text:
 """${text}"""`;
   const r = await ai(prompt, "default");
   if(!r || !Array.isArray(r.tasks)) throw {code:"shape"};
-  r.tasks = r.tasks.filter(t=>t && t.name).map(t=>({
-    name:String(t.name).slice(0,120), area: AREAS[t.area]?t.area:"Other",
-    deadline: /^\d{4}-\d{2}-\d{2}$/.test(t.deadline||"")?t.deadline:null, deadlineSource:t.deadline?(t.deadlineSource==="stated"?"stated":"assumed"):null,
-    importance:clamp(+t.importance||2,1,3), consequence:clamp(+t.consequence||2,1,3), othersWaiting:!!t.othersWaiting,
-    difficulty:clamp(+t.difficulty||2,1,3), friction:clamp(+t.friction||2,1,3), estMin:+t.estMin||null,
-    kind:["write","problem","study","build","admin","other"].includes(t.kind)?t.kind:kindOf(t.name), dependsOn:Array.isArray(t.dependsOn)?t.dependsOn.map(String):[]
-  }));
-  r.questions = Array.isArray(r.questions)?r.questions.slice(0,2):[];
+  r.tasks = r.tasks.filter(t=>t && t.name).map(t=>{
+    const raw = t.timing||{}; let tm;
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(raw.date||"") ? raw.date : null;
+    if(raw.type==="hard" && date) tm = {type:"hard", date};
+    else if((raw.type==="target"||raw.type==="hard") && date) tm = {type:"target", date};
+    else if(raw.type==="ongoing") tm = {type:"ongoing", perWeek:clamp(+raw.perWeek||2,1,7)};
+    else { const d = raw.horizonDays; tm = {type:"horizon", days: d==="asap"?"asap": (+d>0 ? String(Math.round(+d)) : "none")}; }
+    tm.quote = String(raw.quote||"").slice(0,80);
+    return {
+      name:String(t.name).slice(0,120), area: AREAS[t.area]?t.area:"Other", timing:tm,
+      importance:clamp(+t.importance||2,1,3), consequence:clamp(+t.consequence||2,1,3), othersWaiting:!!t.othersWaiting,
+      difficulty:clamp(+t.difficulty||2,1,3), friction:clamp(+t.friction||2,1,3), estMin:+t.estMin||null,
+      kind:["write","problem","study","build","admin","other"].includes(t.kind)?t.kind:kindOf(t.name), dependsOn:Array.isArray(t.dependsOn)?t.dependsOn.map(String):[]
+    };
+  });
+  r.questions = Array.isArray(r.questions)?r.questions.slice(0,2).map(q=>({task:String(q.task||""), kind:q.kind==="due"?"due":q.kind==="scope"?"scope":"other", question:String(q.question||""), why:String(q.why||"")})):[];
   return r;
 }
 async function aiDecompose(t){
-  const prompt = `You are an executive-function coach using task analysis and forward chaining. Break this task into a definition of done and small sequential steps.
-Task: "${t.name}" (area: ${t.area}${t.deadline?`, due ${t.deadline}`:""}${t.notes?`, notes: ${t.notes}`:""}).
-Rules: the first step is a tiny physical action of 5 minutes or less (open, locate, write one line). Steps are 2-25 minutes each, 4-9 steps, in order. "how" says exactly where to go and what to do in one sentence. "tiny" is an even smaller 2-minute version of the step. Make the definition of done a specific, checkable milestone with a stopping point; distinguish rough draft vs polished, prototype vs production, exposure vs mastery.
+  const project = isProject(t), ongoing = (t.timing||{}).type==="ongoing";
+  const ctx = `Task: "${t.name}" (area: ${t.area}; timing: ${timingSentence(t)}${t.scope?`; what finished means to the person: ${t.scope}`:""}${t.notes?`; notes: ${t.notes}`:""}).`;
+  const stepRules = `The first step is a tiny physical action of 5 minutes or less (open, locate, write one line). Steps are 2-25 minutes each and in order. "how" says exactly where to go and what to do in one sentence. "tiny" is an even smaller 2-minute version of the step.`;
+  let prompt;
+  if(project) prompt = `You are an executive-function coach using task analysis and forward chaining. This is an open-ended project. Understand the desired outcome, keep the scope modest unless the person said otherwise, and break it into 3-5 milestones, each a concrete deliverable with checkable criteria, each with 2-6 steps.
+${ctx}
+${stepRules}
+Distinguish rough vs polished, prototype vs production, exposure vs mastery. Do not give dates; the scheduler projects them from real capacity.
+Reply with only JSON: {"outcome":"","deliverable":"","quality":"","scope":"","verify":"","milestones":[{"name":"","deliverable":"","criteria":[""],"steps":[{"text":"","min":10,"how":"","tiny":""}]}]}`;
+  else prompt = `You are an executive-function coach using task analysis and forward chaining. Break this ${ongoing?"recurring responsibility into ONE repeatable session (it has no final completion; the definition of done is for a single session)":"task into a definition of done and small sequential steps"}.
+${ctx}
+${stepRules} ${ongoing?"2-5 steps, 15-45 minutes total.":"4-9 steps."} Make the definition of done specific and checkable with a stopping point; distinguish rough draft vs polished, prototype vs production, exposure vs mastery.
 Reply with only JSON: {"outcome":"","deliverable":"","criteria":["",""],"quality":"","scope":"","stop":"","verify":"","steps":[{"text":"","min":5,"how":"","tiny":""}]}`;
   const r = await ai(prompt, "default");
+  const mkStep = (x, ms) => ({id:uid(), text:String(x.text||"").slice(0,140), min:clamp(Math.round(+x.min||10),2,45), how:String(x.how||""), tiny:String(x.tiny||""), done:false, ...(ms!=null?{ms}:{})});
+  if(project){
+    if(!r || !Array.isArray(r.milestones) || !r.milestones.length) throw {code:"shape"};
+    const M = r.milestones.slice(0,6).filter(m=>Array.isArray(m.steps)&&m.steps.length);
+    if(!M.length) throw {code:"shape"};
+    const steps = []; M.forEach((m,i)=>m.steps.slice(0,8).forEach(x=>steps.push(mkStep(x,i))));
+    return {
+      dod:{outcome:String(r.outcome||t.scope||""), deliverable:String(r.deliverable||""), criteria:M.map(m=>String(m.name)), quality:String(r.quality||""), scope:String(r.scope||""), stop:"Stop at the end of each milestone and check it.", verify:String(r.verify||"")},
+      milestones:M.map(m=>({name:String(m.name||"Milestone"), deliverable:String(m.deliverable||""), criteria:(m.criteria||[]).map(String).slice(0,6)})),
+      steps
+    };
+  }
   if(!r || !Array.isArray(r.steps) || !r.steps.length) throw {code:"shape"};
   return {
     dod:{outcome:String(r.outcome||""), deliverable:String(r.deliverable||""), criteria:(r.criteria||[]).map(String).slice(0,8), quality:String(r.quality||""), scope:String(r.scope||""), stop:String(r.stop||""), verify:String(r.verify||"")},
-    steps:r.steps.slice(0,10).map(s=>({id:uid(), text:String(s.text||"").slice(0,140), min:clamp(Math.round(+s.min||10),2,45), how:String(s.how||""), tiny:String(s.tiny||""), done:false}))
+    milestones:null,
+    steps:r.steps.slice(0,10).map(x=>mkStep(x))
   };
 }
 
@@ -395,7 +554,7 @@ function seed(){
   };
 }
 function load(){ try{ const s = localStorage.getItem(KEY); if(s) return JSON.parse(s); }catch(e){} return null; }
-let S = load() || seed();
+let S = migrate(load() || seed());
 let cloud = null, cloudTimer = null;
 function save(){
   S.updatedAt = Date.now();
@@ -414,7 +573,7 @@ async function pushCloud(){ if(!cloud) return; try{ await cloud.ref.set({json:JS
     const ref = db.doc("data/users/"+id+"/autopilot2");
     const snap = await ref.get();
     cloud = {ref, ok:true};
-    if(snap.exists){ const d = snap.data(); if(d && d.json){ const remote = JSON.parse(d.json); if((remote.updatedAt||0) > (S.updatedAt||0)){ S = remote; dailyChecks(); render(); } } }
+    if(snap.exists){ const d = snap.data(); if(d && d.json){ const remote = JSON.parse(d.json); if((remote.updatedAt||0) > (S.updatedAt||0)){ S = migrate(remote); dailyChecks(); render(); } } }
     if(!snap.exists || (S.updatedAt||0) > ((snap.data()||{}).updatedAt||0)) pushCloud();
     renderStatus();
   }catch(e){}
@@ -455,7 +614,23 @@ function scoreTask(t, focus){
     let u = d<0?7 : d===0?10 : d===1?8 : d<=3?6 : d<=7?3.5 : d<=14?1.5 : .5;
     if(d>=0 && rem > (d+1)*60) u += 2;
     s += u;
-    f.push({w:u, text: d<0?`its deadline was ${relDay(t.deadline)}`: d===0?"it's due today": d===1?"it's due tomorrow":`it's due ${relDay(t.deadline)}`});
+    f.push({w:u, text: d<0?`its deadline was ${relDay(t.deadline)}`: d===0?"it has a hard deadline today": d===1?"it has a hard deadline tomorrow":`it has a hard deadline ${relDay(t.deadline)}`});
+  }
+  const tm = t.timing||{};
+  if(tm.type==="target"||tm.type==="horizon"){
+    if(tm.asap){ s+=3; f.push({w:3, text:"you want it finished as soon as possible"}); }
+    const sd = softDate(t);
+    if(sd){
+      const d = daysUntil(sd), weeks = Math.max(1,(d+1)/7), need = remainingMin(t)/weeks, done = minutesLast7(t);
+      if(need > done+15){ const b = clamp((need-done)/need*3.5,0,3.5); s+=b; f.push({w:b, text: tm.type==="target" ? `it needs steady progress to land near its target of ${fmtShort(sd)}` : `it needs about ${Math.round(need/5)*5} min a week to finish around ${fmtShort(sd)}`}); }
+      if(d>=0 && d<=3){ s+=1.5; f.push({w:1.4, text:`its ${tm.type==="target"?"target date":"window"} is close, though it can move`}); }
+    }
+    if(t.paceBoost){ s+=1.5*t.paceBoost; f.push({w:1.5, text:"you asked to give it more time each week"}); }
+  }
+  if(tm.type==="ongoing"){
+    const q = quotaLeft(t);
+    if(q>0){ const v = 2 + (q>=2?1:0); s+=v; f.push({w:v, text:`it's a regular ${tm.perWeek}×-a-week commitment with ${q} session${q>1?"s":""} left this week`}); }
+    else s -= 4;
   }
   const c = t.consequence*1.5; s+=c; if(t.consequence===3) f.push({w:c-1, text:"missing it has a real consequence"});
   const i = t.importance*1.5; s+=i; if(t.importance===3) f.push({w:i-1.5, text:"it moves a long-term goal forward"});
@@ -469,7 +644,7 @@ function scoreTask(t, focus){
   return {score: Math.round(s*10)/10, factors: f.sort((a,b)=>b.w-a.w)};
 }
 function ranked(focus){
-  return S.tasks.filter(t=>t.status!=="done" && !isBlocked(t) && t.steps.some(s=>!s.done))
+  return S.tasks.filter(t=>t.status!=="done" && !isBlocked(t) && t.steps.some(s=>!s.done) && !((t.timing||{}).type==="ongoing" && !ongoingDueToday(t)))
     .map(t=>({t, ...scoreTask(t, focus)})).sort((a,b)=>b.score-a.score);
 }
 const joinWords = a => a.length<=1 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
@@ -477,10 +652,15 @@ const joinWords = a => a.length<=1 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and
 /* ============ seven-day focus architecture ============ */
 function capFor(dateISO){ return S.prefs.capacity[parseISO(dateISO).getDay()] ?? 120; }
 function buildWeek(){
-  const open = S.tasks.filter(t=>t.status!=="done" && t.steps.some(s=>!s.done));
+  const isOng = t => (t.timing||{}).type==="ongoing";
+  const open = S.tasks.filter(t=>t.status!=="done" && (t.steps.some(s=>!s.done) || isOng(t)));
   const areas = [...new Set(open.map(t=>t.area))];
   const demand = {}; areas.forEach(a=>demand[a]=0);
-  open.forEach(t=>{ const d=t.deadline?daysUntil(t.deadline):30; demand[t.area] += remainingMin(t) * (1 + (t.importance-1)*.3) * (d<=7?1.6:1); });
+  open.forEach(t=>{
+    if(isOng(t)){ demand[t.area] += t.timing.perWeek * sessionMin(t); return; }
+    const sd = t.deadline || softDate(t); const d = sd ? daysUntil(sd) : 45;
+    demand[t.area] += remainingMin(t) * (1 + (t.importance-1)*.3) * (t.deadline&&d<=7?1.6 : d<=14?1.2 : 1) * ((t.timing||{}).asap?1.4:1) * (1+(t.paceBoost||0)*.3);
+  });
   const total = Object.values(demand).reduce((a,b)=>a+b,0)||1;
   const days = [], usedP = {}, usedS = {}; areas.forEach(a=>{usedP[a]=0; usedS[a]=0;});
   const workDays = 6, alloc = {}; areas.forEach(a=>alloc[a]=Math.max(1, Math.round(workDays*demand[a]/total)));
@@ -492,7 +672,7 @@ function buildWeek(){
     }
     const score = a => {
       let s = (alloc[a]-usedP[a])*10 + demand[a]/total*20;
-      open.filter(t=>t.area===a && t.deadline).forEach(t=>{ const D=daysUntil(t.deadline); if(i<=D && D>=0) s += 40*(t.consequence/3)/(D-i+1); if(D<i) s-=0; });
+      open.filter(t=>t.area===a && t.deadline).forEach(t=>{ const D=daysUntil(t.deadline); if(i<=D && D>=0) s += 40*(t.consequence/3)/(D-i+1); });
       if(days[i-1] && days[i-1].primary===a) s -= 14;
       return s;
     };
@@ -504,18 +684,53 @@ function buildWeek(){
     days.push({date, primary, secondary, rest:false, cap:capFor(date)});
   }
   // forecast sessions so the week shows realistic load, not every subtask
-  const consumed = {};
+  const consumed = {}, allocMin = {}, finishDay = {}, msDone = {}, ong = {};
+  open.filter(isOng).forEach(t=>{ const gap = 7/t.timing.perWeek; ong[t.id] = {left: t.timing.perWeek - (doneToday(t)?1:0), next: doneToday(t)?gap:0, gap}; });
   days.forEach((d,i)=>{
-    d.sessions = []; let budget = d.cap*0.8*(d.rest?.5:1);
-    const take = (t, max) => { let m=0, n=0; for(const st of t.steps){ if(st.done||consumed[st.id]) continue; const e=est(t,st); if(n && m+e>max) break; consumed[st.id]=1; m+=e; n++; if(m>=max) break; } if(m){ d.sessions.push({task:t.name, area:t.area, min:m}); budget-=m; } };
-    const pool = open.filter(t=>!isBlocked(t)).sort((a,b)=>scoreTask(b,d).score-scoreTask(a,d).score);
+    d.sessions = []; d.milestones = []; let budget = d.cap*0.8*(d.rest?.5:1);
+    const take = (t, max) => {
+      if(isOng(t)) return;
+      let m=0, n=0;
+      for(const st of t.steps){ if(st.done||consumed[st.id]) continue; const e=est(t,st); if(n && m+e>max) break; consumed[st.id]=1; m+=e; n++;
+        if(st.ms!=null && t.milestones && t.steps.filter(x=>x.ms===st.ms).every(x=>x.done||consumed[x.id]) && !msDone[t.id+":"+st.ms]){ msDone[t.id+":"+st.ms]=1; d.milestones.push({task:t.name, name:t.milestones[st.ms].name, ms:st.ms, taskId:t.id}); }
+        if(m>=max) break; }
+      if(m){ d.sessions.push({task:t.name, area:t.area, min:m}); budget-=m; allocMin[t.id]=(allocMin[t.id]||0)+m; if(t.steps.every(x=>x.done||consumed[x.id]) && finishDay[t.id]==null) finishDay[t.id]=i; }
+    };
+    const pool = open.filter(t=>!isBlocked(t) && !isOng(t)).sort((a,b)=>scoreTask(b,d).score-scoreTask(a,d).score);
     pool.filter(t=>t.deadline && daysUntil(t.deadline)-i<=1 && daysUntil(t.deadline)>=i).forEach(t=>budget>0&&take(t, Math.min(90,budget)));
-    if(!d.rest){ const p = pool.find(t=>t.area===d.primary); if(p && budget>0) take(p, Math.min(50,budget)); }
-    const s2 = pool.find(t=>t.area===d.secondary); if(s2 && budget>0) take(s2, Math.min(d.rest?15:25,budget));
+    open.filter(isOng).forEach(t=>{ const o=ong[t.id]; if(o.left>0 && i>=Math.floor(o.next) && budget>0){ const m=Math.min(sessionMin(t)||20, budget); d.sessions.push({task:t.name, area:t.area, min:m, ongoing:true}); budget-=m; o.left--; o.next+=o.gap; } });
+    if(!d.rest){ const p = pool.find(t=>t.area===d.primary); if(p && budget>0) take(p, Math.min(50+25*(p.paceBoost||0),budget)); }
+    const s2 = pool.find(t=>t.area===d.secondary); if(s2 && budget>0) take(s2, Math.min(d.rest?15:25+15*(s2.paceBoost||0),budget));
+    if(!d.rest) pool.filter(t=>((t.timing||{}).asap || t.paceBoost) && !d.sessions.some(x=>x.task===t.name)).forEach(t=>budget>=15&&take(t, Math.min(25*(t.paceBoost||1), budget)));
     d.planned = d.sessions.reduce((a,s)=>a+s.min,0);
     d.deadlines = open.filter(t=>t.deadline===d.date).map(t=>t.name);
   });
+  // project realistic finish dates for open-ended work from the capacity it actually gets
+  open.filter(t=>!isOng(t) && !t.deadline).forEach(t=>projectFinish(t, allocMin[t.id]||0, finishDay[t.id]));
+  // milestone dates beyond this week, for display
+  days.forEach(d=>d.targets = open.filter(t=>softDate(t)===d.date && !t.deadline).map(t=>t.name));
   S.week = days; S.weekDate = todayISO();
+}
+function projectFinish(t, weekMin, fd){
+  const tm = t.timing; const rem = remainingMin(t);
+  if(!rem) return;
+  const rate = Math.max(weekMin, 20);
+  const daysNeeded = fd!=null ? fd : Math.ceil(rem/rate*7*1.15); // 15% buffer beyond this week
+  const proposed = addDays(todayISO(), Math.max(0,daysNeeded));
+  if(t.milestones){
+    let cum = 0;
+    tm.msDates = t.milestones.map((m,k)=>{ const r=t.steps.filter(s=>s.ms===k && !s.done).reduce((x,s)=>x+est(t,s),0); if(!r) return null; cum+=r; return addDays(todayISO(), fd!=null && cum<=weekMin ? Math.min(fd, Math.ceil(cum/rate*7)) : Math.ceil(cum/rate*7*1.15)); });
+  }
+  // reassess once a day: say when and why the projection moved
+  if(tm.anchorDate !== todayISO()){
+    if(tm.proposed && Math.abs(daysBetween(tm.proposed, proposed))>=3){
+      const r = ratio(t.area), later = daysBetween(tm.proposed, proposed)>0;
+      tm.shift = {from:tm.proposed, to:proposed, on:todayISO(), why: r>1.15&&later ? `steps are taking about ${r.toFixed(1)}× longer than first estimated` : r<0.87&&!later ? "you're moving faster than first estimated" : later ? "other priorities needed the time this week" : "more time opened up this week"};
+    }
+    tm.anchorDate = todayISO();
+  }
+  tm.proposed = proposed; tm.weekly = Math.round(weekMin); tm.crowded = weekMin===0;
+  tm.over = tm.type==="target" ? daysBetween(tm.date, proposed) > 1 : tm.windowEnd ? proposed > tm.windowEnd : false;
 }
 
 /* ============ difficulty-aware daily plan + Daily Dose ============ */
@@ -538,8 +753,12 @@ function buildPlan(mode){
   };
   R.filter(r=>r.t.deadline && daysUntil(r.t.deadline)<=1).forEach(r=>take(r.t, mode==="min"?30:75, true, "deadline"));
   const inPlan = id => chunks.some(c=>c.taskId===id);
+  // regular commitments that are due today come before flexible project work
+  R.filter(r=>(r.t.timing||{}).type==="ongoing").forEach(r=>take(r.t, 45, mode!=="min" || r.t.timing.perWeek>=4, "ongoing"));
   if(!focus.rest){ const p = R.find(r=>r.t.area===focus.primary && !inPlan(r.t.id)); if(p) take(p.t, mode==="min"?15:40, true, "primary"); }
   const s = R.find(r=>r.t.area===focus.secondary && !inPlan(r.t.id)); if(s) take(s.t, mode==="min"?10:20, true, "secondary");
+  if(mode!=="min") R.filter(r=>((r.t.timing||{}).asap || r.t.paceBoost) && !inPlan(r.t.id)).slice(0,1).forEach(r=>take(r.t, 25, true, "asap"));
+
   if(!chunks.length && R[0]) take(R[0].t, 15, true, "top");
   // trim required to capacity, highest priority kept
   let total = 0; const req = [];
@@ -548,11 +767,11 @@ function buildPlan(mode){
   const opt = [];
   if(mode==="full") for(const r of R){ if(total>=usable) break; const before=chunks.length; take(r.t, Math.min(25, usable-total), false, "optional"); if(chunks.length>before){ const c=chunks[chunks.length-1]; const l=c.diff*c.min/25; if(load+l>diffBudget){ chunks.pop(); continue; } load+=l; total+=c.min; opt.push(c); } }
   // behavioral sequence: easy entry -> focused work -> manageable completion -> reset -> next
-  let seq = [];
+  let seq = [], entryPicked = false;
   const pool = [...req];
   if(S.prefs.sequence==="easy-first"){
     const entry = [...pool].sort((a,b)=>(a.fric+a.min/30)-(b.fric+b.min/30))[0];
-    if(entry && entry.min<=20){ seq.push(entry); pool.splice(pool.indexOf(entry),1); }
+    if(entry && entry.min<=20){ seq.push(entry); pool.splice(pool.indexOf(entry),1); entryPicked = true; }
   } else { pool.sort((a,b)=>b.diff-a.diff); }
   while(pool.length){
     const prev = seq[seq.length-1];
@@ -563,7 +782,7 @@ function buildPlan(mode){
   const items = [];
   const pushChunk = (c, kind) => c.steps.forEach((i,k)=>{ const t=S.tasks.find(x=>x.id===c.taskId); items.push({taskId:c.taskId, stepId:t.steps[i].id, min:est(t,t.steps[i]), required:c.required, kind: k===0?kind:"", why:c.why}); });
   seq.forEach((c,ix)=>{
-    const kind = ix===0 && S.prefs.sequence==="easy-first" && seq.length>1 ? "Easy start" : c.diff>=3 ? "Focused work" : ix===seq.length-1 ? "Easy win" : "Steady work";
+    const kind = ix===0 && entryPicked && seq.length>1 ? "Easy start" : c.diff>=3 ? "Focused work" : ix===seq.length-1 ? "Easy win" : "Steady work";
     pushChunk(c, kind);
     if(ix<seq.length-1 && (c.min>=25 || (c.diff>=3 && seq[ix+1].diff>=3))) items.push({brk:true, min:5, required:false, id:uid()});
   });
@@ -594,6 +813,7 @@ function dailyChecks(){
     // count deferrals for tasks that slipped
     if(stale) new Set(S.plan.items.filter(it=>!it.brk && it.required && stepOf(it).st && !stepOf(it).st.done).map(it=>it.taskId)).forEach(id=>{ const t=S.tasks.find(x=>x.id===id); if(t) t.deferrals++; });
   }
+  S.tasks.forEach(t=>{ if((t.timing||{}).type==="ongoing" && t.steps.length && t.steps.every(s=>s.done) && !doneToday(t)) t.steps = t.steps.map(s=>({...s, id:uid(), done:false, doneAt:null})); });
   if(stale && missed===1){ const it=S.plan.items.find(it=>!it.brk && it.required && !stepOf(it).st.done); const t=it&&S.tasks.find(x=>x.id===it.taskId); if(t) t.deferrals++; }
   if(!S.plan || stale) buildPlan("full");
   S.lastOpen = Date.now();
@@ -672,9 +892,9 @@ function viewToday(){
     const session = Math.max(n.min, 0);
     card = `<article class="next" style="--c:${areaVar(t.area)}">
       <div class="row" style="justify-content:space-between">${chip(t.area)}${n.kind?`<span class="kind">${esc(n.kind)}</span>`:""}</div>
-      <div class="task">${esc(t.name)} · step ${i+1} of ${t.steps.length}</div>
+      <div class="task">${esc(t.name)} · ${st.ms!=null&&t.milestones?`${esc(t.milestones[st.ms].name)} (milestone ${st.ms+1} of ${t.milestones.length})`:`step ${i+1} of ${t.steps.length}`}</div>
       <div class="action">${esc(lvl>=3 && st.tiny ? st.tiny : st.text)}</div>
-      <div class="meta"><span>Session <b class="mono">${session} min</b></span><span>Stop after: <b>this step</b></span>${t.deadline?`<span>Due <b>${esc(relDay(t.deadline))}</b>${t.deadlineSource==="assumed"?" (assumed)":""}</span>`:""}</div>
+      <div class="meta"><span>Session <b class="mono">${session} min</b></span><span>Stop after: <b>this step</b></span><span>${timingTag(t)}</span></div>
       ${lvl>=2 && st.how ? `<div class="prompt"><div class="lvl">HOW TO START</div>${esc(st.how)}</div>`:""}
       <p class="why"><strong>Why this:</strong> ${esc(top.length? top[0][0].toUpperCase()+joinWords(top).slice(1) : "It's the most useful next move")}.${esc(entryLine)}${esc(deferLine)}</p>
       <details><summary>What finished looks like</summary>${dodBlock(t)}</details>
@@ -693,7 +913,17 @@ function viewToday(){
 }
 function dodBlock(t){
   const d = t.dod||{};
-  return `<div class="small muted" style="margin-top:8px"><b style="color:var(--ink)">${esc(d.outcome||"")}</b>${d.deliverable?` · ${esc(d.deliverable)}`:""}</div>
+  if(t.milestones){
+    const cur = (t.steps.find(s=>!s.done)||{}).ms; const m = t.milestones[cur] || t.milestones[t.milestones.length-1];
+    const md = (t.timing||{}).msDates||[];
+    return `<div class="small muted" style="margin-top:8px">Project outcome: <b style="color:var(--ink)">${esc(d.outcome||"")}</b></div>
+      <div style="margin-top:8px"><b>This milestone: ${esc(m.name)}</b> <span class="small muted">· ${esc(m.deliverable||"")}</span></div>
+      <ul class="dod">${(m.criteria||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul>
+      <div class="dodnote"><b>Stopping point:</b> when this milestone's list is checked. ${esc(d.scope||"")}</div>
+      <div class="mlist">${t.milestones.map((x,k)=>{ const done=t.steps.filter(s=>s.ms===k).every(s=>s.done); return `<span class="${done?"d":k===cur?"c":""}">${done?"✓ ":""}${esc(x.name)}${!done&&md[k]?` · ${esc(fmtShort(md[k]))}`:""}</span>`; }).join("")}</div>`;
+  }
+  const ongoingNote = (t.timing||{}).type==="ongoing" ? `<div class="dodnote">This is one session of an ongoing responsibility. Finishing the session is the whole goal.</div>` : "";
+  return ongoingNote + `<div class="small muted" style="margin-top:8px"><b style="color:var(--ink)">${esc(d.outcome||"")}</b>${d.deliverable?` · ${esc(d.deliverable)}`:""}</div>
     <ul class="dod">${(d.criteria||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul>
     <div class="dodnote">${esc(d.quality||"")} ${esc(d.scope||"")}<br><b>Stopping point:</b> ${esc(d.stop||"")}</div>`;
 }
@@ -750,11 +980,37 @@ function viewRecovery(){
       <button class="btn" style="text-align:left" data-act="rebuild" data-mode="light"><b>Light day</b> <span class="muted small">· about ${Math.round(capFor(todayISO())*.48)} min, the essentials only</span></button>
       <button class="btn primary" style="text-align:left" data-act="rebuild" data-mode="min"><b>Just the minimum</b> <span style="opacity:.85" class="small">· one small step per priority</span></button>
     </div>
-    ${ahead.length?`<p class="small muted" style="margin-top:14px">Still protected this week: ${ahead.map(t=>esc(t.name)+" ("+esc(relDay(t.deadline))+")").join(", ")}.</p>`:""}
+    ${S.tasks.some(t=>t.status!=="done" && !t.deadline && (t.timing||{}).type!=="ongoing")?`<p class="small muted" style="margin-top:14px">Projects without a hard deadline are re-planned around the time you actually have. Nothing there is overdue.</p>`:""}
+    ${ahead.length?`<p class="small muted" style="margin-top:14px">Hard deadlines still protected this week: ${ahead.map(t=>esc(t.name)+" ("+esc(relDay(t.deadline))+")").join(", ")}.</p>`:""}
   </div>`;
 }
 
 /* ---------- WEEK ---------- */
+const timingOptions = v => [["hard","Hard deadline"],["target","Target date (can move)"],["horizon","Time window"],["ongoing","Ongoing, no end"]].map(([k,l])=>`<option value="${k}" ${v===k?"selected":""}>${l}</option>`).join("");
+function projectsPanel(){
+  const proj = S.tasks.filter(t=>t.status!=="done" && !t.deadline && ["target","horizon"].includes((t.timing||{}).type));
+  const ong = S.tasks.filter(t=>t.status!=="done" && (t.timing||{}).type==="ongoing");
+  if(!proj.length && !ong.length) return "";
+  return `<section><h3>Projects and ongoing work</h3>
+  <p class="small muted">No hard deadline here, so I project finish dates from the time each one actually gets in your week, and update them as real progress comes in.</p>
+  <div class="stack" style="margin-top:8px">${proj.map(t=>{
+    const tm=t.timing, rem=remainingMin(t), dn=t.steps.filter(s=>s.done).length;
+    const md = tm.msDates||[];
+    const nextMs = t.milestones ? t.milestones.findIndex((m,k)=>!t.steps.filter(s=>s.ms===k).every(s=>s.done)) : -1;
+    const sessions = Math.max(1, Math.ceil(rem/40));
+    return `<div class="trow">
+      <div class="trow-top"><span class="n">${chip(t.area)} ${esc(t.name)}</span>${timingTag(t)}</div>
+      <div class="small" style="margin-top:8px">${tm.proposed?`Realistic finish: <b>${esc(fmtDay(tm.proposed))}</b>. `:""}About ${Math.round(rem/60*10)/10} h left (~${sessions} work session${sessions>1?"s":""}), ${tm.weekly?`${tm.weekly} min planned this week`:"no time free for it this week"}. ${dn}/${t.steps.length} steps done.</div>
+      ${t.milestones?`<div class="mlist">${t.milestones.map((m,k)=>{ const done=t.steps.filter(s=>s.ms===k).every(s=>s.done); return `<span class="${done?"d":k===nextMs?"c":""}">${done?"✓ ":""}${esc(m.name)}${!done&&md[k]?` · ${esc(fmtShort(md[k]))}`:""}</span>`; }).join("")}</div>`:""}
+      ${tm.shift && tm.shift.on===todayISO()?`<div class="small muted" style="margin-top:6px">Moved from ${esc(fmtShort(tm.shift.from))} to ${esc(fmtShort(tm.shift.to))} because ${esc(tm.shift.why)}.</div>`:""}
+      ${tm.over?`<div class="q" style="margin-top:8px">At the pace your week allows, this lands around <b>${esc(fmtDay(tm.proposed))}</b>, after your ${tm.type==="target"?`target of ${esc(fmtShort(tm.date))}`:`${esc(horizonName(tm.days).toLowerCase())} window`}. Pick one:
+        <div class="row" style="margin-top:8px"><button class="btn" data-act="pace-up" data-id="${t.id}">Give it more time each week</button><button class="btn" data-act="edit-task" data-id="${t.id}">Make the scope smaller</button><button class="btn ghost" data-act="accept-proj" data-id="${t.id}">Aim for ${esc(fmtShort(tm.proposed))} instead</button></div></div>`
+      : tm.type==="horizon" && !tm.windowEnd && !tm.asap && tm.proposed ? `<div class="row small" style="margin-top:8px"><span class="muted">Suggested target: ${esc(fmtDay(tm.proposed))}. It's a plan, not a deadline.</span><button class="btn ghost" data-act="accept-proj" data-id="${t.id}">Use this as my target</button></div>`:""}
+      ${t.paceBoost?`<div class="row small" style="margin-top:6px"><span class="muted">Getting extra time each week.</span><button class="btn ghost" data-act="pace-down" data-id="${t.id}">Back to normal pace</button></div>`:""}
+    </div>`; }).join("")}
+  ${ong.map(t=>`<div class="trow"><div class="trow-top"><span class="n">${chip(t.area)} ${esc(t.name)}</span>${timingTag(t)}</div><div class="small muted" style="margin-top:6px">One session is about ${sessionMin(t)} min. ${quotaLeft(t)?`${quotaLeft(t)} left in the last 7 days, spread across the week.`:"On pace this week. Nothing more needed."}</div></div>`).join("")}
+  </div></section>`;
+}
 function viewWeek(){
   if(S.weekDate!==todayISO()) buildWeek();
   const days = S.week;
@@ -770,9 +1026,12 @@ function viewWeek(){
         <div class="cap" title="${d.planned} of ${d.cap} min"><i style="width:${pct}%;background:var(--c)"></i></div>
         <div class="small muted mono">${d.planned}/${d.cap} min</div>
         ${d.sessions.map(s=>`<div class="sess" style="--c:${areaVar(s.area)}">${esc(s.task)} · ${s.min}m</div>`).join("")}
-        ${d.deadlines.map(n=>`<div class="dl">Due: ${esc(n)}</div>`).join("")}
+        ${d.deadlines.map(n=>`<div class="dl">Hard deadline: ${esc(n)}</div>`).join("")}
+        ${(d.milestones||[]).map(m=>`<div class="small muted">◆ ${esc(m.name)} (${esc(m.task)})</div>`).join("")}
+        ${(d.targets||[]).map(n=>`<div class="small muted">Target: ${esc(n)}</div>`).join("")}
       </div>`;}).join("")}</div>
   </section>
+  ${projectsPanel()}
   <section><h3>Your time and routines</h3>
     <div class="grid2">
       ${[1,2,3,4,5,6,0].map(w=>`<label class="field">${WD[w]}<select data-cap="${w}" id="cap-${w}">${[0,30,45,60,90,120,150,180,240,300].map(m=>`<option value="${m}" ${S.prefs.capacity[w]==m?"selected":""}>${m?m+" min available":"Day off"}</option>`).join("")}</select></label>`).join("")}
@@ -797,7 +1056,7 @@ function viewWork(){
     ${ts.sort((x,y)=>(x.status==="done")-(y.status==="done")).map(t=>{ const sc=scoreTask(t,f); const dn=t.steps.filter(s=>s.done).length; const open=ui.editing===t.id;
       return `<div class="trow">
         <div class="trow-top"><span class="n">${esc(t.name)}${t.status==="done"?` <span class="tag">Done</span>`:""}${isBlocked(t)?` <span class="tag">Waiting on another task</span>`:""}</span>
-        <span class="row small">${t.deadline?`<span class="tag ${daysUntil(t.deadline)<=1?"warn":""}">Due ${esc(relDay(t.deadline))}${t.deadlineSource==="assumed"?"?":""}</span>`:""}<span class="mono muted">${dn}/${t.steps.length} steps</span><span class="tag mono" title="Priority score">P ${sc.score}</span>
+        <span class="row small">${timingTag(t)}<span class="mono muted">${dn}/${t.steps.length} steps</span><span class="tag mono" title="Priority score">P ${sc.score}</span>
         <button class="btn ghost" data-act="${open?"close-edit":"edit-task"}" data-id="${t.id}">${open?"Close":"Edit"}</button></span></div>
         ${open?editForm(t):""}
       </div>`;}).join("")}`).join("")}
@@ -805,11 +1064,15 @@ function viewWork(){
 }
 function seg(field, id, val){ return `<span class="seg" role="group">${[1,2,3].map(v=>`<button type="button" data-act="seg" data-id="${id}" data-field="${field}" data-v="${v}" aria-pressed="${val===v}">${LVL[v-1]}</button>`).join("")}</span>`; }
 function editForm(t){
-  return `<form class="edit" data-id="${t.id}" id="edit-${t.id}">
+  return `<form class="edit" data-id="${t.id}" id="edit-${t.id}" data-ttype="${t.timing.type}">
+    <p class="small muted">${esc(timingSentence(t))}${t.timing.quote?` You said “${esc(t.timing.quote)}”.`:""}</p>
     <div class="grid2">
       <label class="field">Name<input id="e-name-${t.id}" name="name" value="${esc(t.name)}"></label>
       <label class="field">Area<select id="e-area-${t.id}" name="area">${Object.keys(AREAS).map(a=>`<option ${a===t.area?"selected":""}>${a}</option>`).join("")}</select></label>
-      <label class="field">Deadline<input type="date" id="e-dl-${t.id}" name="deadline" value="${t.deadline||""}"></label>
+      <label class="field">Timing<select id="e-tt-${t.id}" name="ttype" data-ttype-select>${timingOptions(t.timing.type)}</select></label>
+      <label class="field tf tf-date">Date<input type="date" id="e-td-${t.id}" name="tdate" value="${t.timing.date||""}"></label>
+      <label class="field tf tf-days">Window<select id="e-tw-${t.id}" name="tdays">${HORIZONS.map(([v,l])=>`<option value="${v}" ${String(t.timing.days)===v?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label class="field tf tf-per">Sessions a week<select id="e-tp-${t.id}" name="tper">${[1,2,3,4,5,6,7].map(n=>`<option ${t.timing.perWeek==n?"selected":""}>${n}</option>`).join("")}</select></label>
       <label class="field">Must happen after<select id="e-dep-${t.id}" name="dep"><option value="">Nothing</option>${S.tasks.filter(x=>x.id!==t.id).map(x=>`<option value="${x.id}" ${(t.dependsOn||[]).includes(x.id)?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
     </div>
     <div class="grid2">
@@ -911,17 +1174,25 @@ function updateTimer(){
   if(e.mode==="body" && msg && !e.overNotified){ const m=Math.floor(elapsedSec()/60); if(m>0 && m%5===0) msg.textContent = `Still here with you. ${Math.max(0,Math.ceil(left/60))} min left.`; }
 }
 const fmtClock = s => { const neg=s<0; s=Math.abs(Math.round(s)); return (neg?"+":"")+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+function onStepDone(t, st){
+  st.done = true; st.doneAt = Date.now();
+  const tm = t.timing||{};
+  if(tm.type==="ongoing"){
+    if(t.steps.every(s=>s.done)){ (t.cycles=t.cycles||[]).push(Date.now()); award(15, `Session done: ${t.name}`); } else award(5, "Step done");
+  } else if(t.steps.every(s=>s.done)){
+    t.status="done"; t.doneAt=Date.now(); award(t.milestones?40:20, t.milestones?`Project finished: ${t.name}`:`Finished: ${t.name}`);
+  } else if(st.ms!=null && t.milestones && t.steps.filter(s=>s.ms===st.ms).every(s=>s.done)){
+    award(20, `Milestone reached: ${t.milestones[st.ms].name}`);
+  } else award(5, "Step done");
+  if(doseDone() && !S.metrics.doseDays.includes(todayISO())){ S.metrics.doseDays.push(todayISO()); setTimeout(()=>award(25, "Today's dose is complete"), 1600); if(new Date().getHours()<15) setTimeout(()=>award(10,"Ahead of schedule bonus"), 3400); }
+}
 function finishStep(){
   const e = ui.exec; const t = S.tasks.find(x=>x.id===e.taskId); const st = t.steps.find(s=>s.id===e.stepId);
   const actual = elapsedSec()/60; pauseTimer(); clearInterval(tick);
   if(!st.done){
-    st.done = true; st.doneAt = Date.now();
     if(actual>=1 && !e.tiny) learnFrom(t, st, actual);
     if(e.session){ Object.assign(e.session, {end:Date.now(), actual:Math.round(actual), completed:true}); S.sessions.push(e.session); }
-    let msg = "Step done";
-    if(t.steps.every(s=>s.done)){ t.status="done"; t.doneAt=Date.now(); award(20, `Milestone reached: ${t.name}`); msg=null; }
-    else award(5, msg);
-    if(doseDone() && !S.metrics.doseDays.includes(todayISO())){ S.metrics.doseDays.push(todayISO()); setTimeout(()=>award(25, "Today's dose is complete"), 1600); if(new Date().getHours()<15) setTimeout(()=>award(10,"Ahead of schedule bonus"), 3400); }
+    onStepDone(t, st);
     save();
   }
   const next = nextItem();
@@ -951,9 +1222,9 @@ function renderExec(){
   } else if(e.finished){
     const nx = e.next && stepOf(e.next);
     body = `<div class="label" style="color:var(--reward)">Step done</div>
-      <div class="stepbig">${t.status==="done"?"Milestone reached.":"Nice. That's real progress."}</div>
+      <div class="stepbig">${t.status==="done"?"Finished.":(t.timing||{}).type==="ongoing"&&t.steps.every(s=>s.done)?"Session complete.":st.ms!=null&&t.milestones&&t.steps.filter(s=>s.ms===st.ms).every(s=>s.done)?"Milestone reached.":"Nice. That's real progress."}</div>
       <div class="chain">${t.steps.map(s=>`<i class="${s.done?"d":""}"></i>`).join("")}</div>
-      <p class="muted" style="margin-top:12px">${t.status==="done"?`“${esc(t.name)}” meets its definition of done.`:`${t.steps.filter(s=>s.done).length} of ${t.steps.length} steps of “${esc(t.name)}” are done.`}</p>
+      <p class="muted" style="margin-top:12px">${t.status==="done"?`“${esc(t.name)}” meets its definition of done.`:(t.timing||{}).type==="ongoing"&&t.steps.every(s=>s.done)?`That's ${t.timing.perWeek-quotaLeft(t)} of ${t.timing.perWeek} sessions this week. There's no finish line to chase here.`:`${t.steps.filter(s=>s.done).length} of ${t.steps.length} steps of “${esc(t.name)}” are done.`}</p>
       <div class="stack" style="margin-top:16px">
         ${e.brk?`<button class="btn reward" data-act="take-break" data-min="${e.brk.min}">Take a ${e.brk.min}-minute reset first</button>`:""}
         ${nx?`<button class="btn primary big" data-act="exec-next" data-step="${e.next.stepId}" style="text-align:left">Next: ${esc(nx.st.text)} <span style="opacity:.8;font-weight:400">· ${e.next.min} min</span></button>`:`<p><b>That was the last step in today's dose.</b> Everything else is optional.</p>`}
@@ -964,7 +1235,7 @@ function renderExec(){
     const later = t.steps.slice(i+1, e.showAll?undefined:i+3);
     body = `<div class="row" style="justify-content:space-between">${chip(t.area)}<span class="small muted">${esc(t.name)}</span></div>
       <div class="chain" style="margin-top:12px" aria-label="Step ${i+1} of ${t.steps.length}">${t.steps.map((s,k)=>`<i class="${s.done?"d":k===i?"c":""}"></i>`).join("")}</div>
-      <div class="small muted" style="margin-top:6px">Step ${i+1} of ${t.steps.length}</div>
+      <div class="small muted" style="margin-top:6px">${st.ms!=null&&t.milestones?`Milestone ${st.ms+1} of ${t.milestones.length}: <b>${esc(t.milestones[st.ms].name)}</b> · `:""}Step ${i+1} of ${t.steps.length}</div>
       <div class="stepbig">${esc(showTiny ? (st.tiny || "Do just two minutes of: "+st.text.toLowerCase()) : st.text)}</div>
       ${e.level>=2 && st.how ? `<div class="prompt"><div class="lvl">EXACTLY WHAT TO DO</div>${esc(st.how)}</div>`:""}
       ${e.level>=4 ? guidedHTML(t, st) : ""}
@@ -1015,8 +1286,11 @@ function renderCapture(){
         <div class="row"><input type="text" id="p-name-${i}" value="${esc(t.name)}" aria-label="Task name" data-pi="${i}" data-pf="name"><button class="btn ghost" data-act="p-remove" data-i="${i}" aria-label="Remove">Remove</button></div>
         <div class="row small">
           <select id="p-area-${i}" data-pi="${i}" data-pf="area" aria-label="Area">${Object.keys(AREAS).map(a=>`<option ${a===t.area?"selected":""}>${a}</option>`).join("")}</select>
-          <label class="row" style="gap:6px">Due <input type="date" id="p-dl-${i}" value="${t.deadline||""}" data-pi="${i}" data-pf="deadline"></label>
-          ${t.deadlineSource==="assumed"?`<span class="tag">date assumed</span>`:""}
+          <select id="p-tt-${i}" data-pi="${i}" data-pf="ttype" aria-label="Timing">${timingOptions(t.timing.type)}</select>
+          ${t.timing.type==="hard"||t.timing.type==="target"?`<input type="date" id="p-td-${i}" value="${t.timing.date||""}" data-pi="${i}" data-pf="tdate" aria-label="Date">`:""}
+          ${t.timing.type==="horizon"?`<select id="p-tw-${i}" data-pi="${i}" data-pf="tdays" aria-label="Window">${HORIZONS.map(([v,l])=>`<option value="${v}" ${String(t.timing.days)===v?"selected":""}>${l}</option>`).join("")}</select>`:""}
+          ${t.timing.type==="ongoing"?`<select id="p-tp-${i}" data-pi="${i}" data-pf="tper" aria-label="Sessions a week">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${t.timing.perWeek==n?"selected":""}>${n}× a week</option>`).join("")}</select>`:""}
+          ${t.timing.quote?`<span class="tag">you said “${esc(t.timing.quote)}”</span>`:t.timing.assumed?`<span class="tag">my guess</span>`:""}
           ${t.othersWaiting?`<span class="tag">someone's waiting</span>`:""}
         </div></div>`).join("")}
       ${c.parsed.questions.length?`<div class="stack" style="margin-top:12px;gap:8px">${c.parsed.questions.map((q,i)=>`<div class="q"><b>${esc(q.question)}</b> <span class="muted small">${esc(q.why||"")}</span><input id="q-${i}" style="display:block;margin-top:6px;width:100%" placeholder="Optional. Skip if you don't know." data-qi="${i}"></div>`).join("")}</div>`:""}
@@ -1035,11 +1309,12 @@ async function doParse(){
 }
 function commitCapture(){
   const c = ui.capture;
-  document.querySelectorAll("[data-qi]").forEach(el=>{ const q=c.parsed.questions[+el.dataset.qi]; if(el.value.trim()){ const t=c.parsed.tasks.find(x=>x.name===q.task); if(t){ const d=parseDeadline(el.value); if(d && /due|when/i.test(q.question)){ t.deadline=d; t.deadlineSource="stated"; } else t.notes=(t.notes||"")+" "+q.question+" "+el.value; } } });
+  document.querySelectorAll("[data-qi]").forEach(el=>{ const q=c.parsed.questions[+el.dataset.qi]; if(el.value.trim()){ const t=c.parsed.tasks.find(x=>x.name===q.task); if(t){ const v=el.value.trim(); if(q.kind==="due" || /due|when/i.test(q.question)){ const d=parseDeadline(v); if(d) t.timing={type:"hard", date:d, quote:v}; else if(/^(no|none|nope|not really|there isn'?t)/i.test(v)) {} else t.notes=(t.notes||"")+" "+v; } else if(q.kind==="scope"){ t.scope=v; } else t.notes=(t.notes||"")+" "+q.question+" "+v; } } });
   if(S.hasExamples){ S.tasks = S.tasks.filter(t=>!t.example || t.steps.some(s=>s.done)); S.hasExamples=false; }
   const added = [];
   c.parsed.tasks.forEach(p=>{
     const t = Object.assign({id:uid(), createdAt:Date.now(), status:"open", deferrals:0, notes:"", aiDone:false}, p, {dependsOn:[]});
+    setTiming(t, p.timing || {type:"horizon", days:"none"});
     Object.assign(t, templateFor(t));
     if(p.estMin && p.estMin>0){ const sum=t.steps.reduce((a,s)=>a+s.min,0); const k=clamp(p.estMin/sum,.5,2.5); t.steps.forEach(s=>s.min=Math.max(2,Math.round(s.min*k))); }
     t._depNames = p.dependsOn||[];
@@ -1054,7 +1329,7 @@ function commitCapture(){
 async function decomposeQueue(list){
   for(const t of list){
     if(t.steps.some(s=>s.done)) continue;
-    try{ const r = await aiDecompose(t); const live=S.tasks.find(x=>x.id===t.id); if(live && !live.steps.some(s=>s.done)){ live.dod=r.dod; live.steps=r.steps; live.aiDone=true; buildPlan(); save(); if(!ui.exec && !ui.capture) render(); } }
+    try{ const r = await aiDecompose(t); const live=S.tasks.find(x=>x.id===t.id); if(live && !live.steps.some(s=>s.done)){ live.dod=r.dod; live.steps=r.steps; live.milestones=r.milestones; live.aiDone=true; buildPlan(); save(); if(!ui.exec && !ui.capture) render(); } }
     catch(e){ if(e && (e.code==="rate_limited"||e.code==="not_granted")) break; }
   }
 }
@@ -1090,13 +1365,16 @@ document.addEventListener("click", async ev => {
     case "switch": { S.skipToday = S.skipToday; const n=nextItem(); const cur=n&&stepOf(n).t; if(cur) S.skipToday[cur.id]=todayISO(); const keep = S.skipToday; buildPlan(); const it = S.plan.items.find(x=>x.taskId===T.id); if(!it){ const st=T.steps.find(s=>!s.done); S.plan.items.unshift({taskId:T.id, stepId:st.id, min:est(T,st), required:true, kind:"Your pick"}); } else { S.plan.items.splice(S.plan.items.indexOf(it),1); it.required=true; S.plan.items.unshift(it); } if(cur) delete S.skipToday[cur.id]; ui.notThis=false; save(); render(); break; }
     case "edit-task": tab="work"; ui.editing=id; ui.notThis=false; render(); setTimeout(()=>{ const f=document.getElementById("edit-"+id); if(f) f.scrollIntoView({block:"center"}); },30); break;
     case "close-edit": ui.editing=null; render(); break;
+    case "pace-up": T.paceBoost=Math.min(2,(T.paceBoost||0)+1); buildPlan(); save(); render(); toast("It gets more time each week now. Daily limits still apply."); break;
+    case "pace-down": T.paceBoost=0; buildPlan(); save(); render(); break;
+    case "accept-proj": setTiming(T, {type:"target", date:T.timing.proposed, quote:T.timing.quote}); buildPlan(); save(); render(); toast("Target set. It can still move."); break;
     case "seg": { const t=S.tasks.find(x=>x.id===id); t[el.dataset.field]=+el.dataset.v; save(); render(); break; }
-    case "toggle-step": { const it=S.plan.items.find(x=>x.stepId===el.dataset.step); const {t,st}=stepOf(it); st.done=!st.done; if(st.done){ award(5,"Step done"); if(t.steps.every(s=>s.done)){ t.status="done"; award(20,`Milestone reached: ${t.name}`);} if(doseDone() && !S.metrics.doseDays.includes(todayISO())){ S.metrics.doseDays.push(todayISO()); setTimeout(()=>award(25,"Today's dose is complete"),1500);} } else { t.status="open"; } save(); render(); break; }
+    case "toggle-step": { const it=S.plan.items.find(x=>x.stepId===el.dataset.step); const {t,st}=stepOf(it); if(!st.done) onStepDone(t, st); else { st.done=false; st.doneAt=null; t.status="open"; if((t.timing||{}).type==="ongoing" && doneToday(t)) t.cycles.pop(); } save(); render(); break; }
     case "optional": { const it=S.plan.items.find(x=>!x.brk && !x.required && !stepOf(x).st.done); if(it) openExec(it.stepId); break; }
     case "done-day": S.doneForDay=todayISO(); save(); render(); break;
     case "undo-done-day": S.doneForDay=null; save(); render(); break;
     case "offtrack": S.recovery={reason:"manual", at:Date.now()}; S.lastDisruption=Date.now(); save(); render(); break;
-    case "pd-keep": T.pastDue=true; T.deadline=addDays(todayISO(),1); T.deadlineSource="assumed"; T.consequence=Math.max(2,T.consequence); save(); render(); break;
+    case "pd-keep": T.pastDue=true; setTiming(T, {type:"target", date:addDays(todayISO(),1)}); T.consequence=Math.max(2,T.consequence); save(); render(); break;
     case "pd-handled": T.status="done"; T.steps.forEach(s=>s.done=true); save(); render(); break;
     case "pd-drop": T.status="done"; T.dropped=true; save(); render(); break;
     case "rebuild": {
@@ -1121,7 +1399,7 @@ document.addEventListener("click", async ev => {
     case "del-reward": S.rewards=S.rewards.filter(x=>x.id!==id); save(); render(); break;
     case "del-routine": S.prefs.routines=S.prefs.routines.filter(x=>x.id!==id); save(); render(); break;
     case "reset-learn": delete S.learn[el.dataset.area]; buildPlan(); save(); render(); break;
-    case "redecompose": { const t=T; if(aiState==="ready"){ el.disabled=true; el.textContent="Planning…"; try{ const r=await aiDecompose(t); const done=t.steps.filter(s=>s.done); t.dod=r.dod; t.steps=[...done, ...r.steps]; t.aiDone=true; }catch(e){ toast("Claude couldn't plan this right now. Your steps are unchanged."); } } else { const r=templateFor(t); t.dod=r.dod; t.steps=[...t.steps.filter(s=>s.done), ...r.steps]; } buildPlan(); save(); render(); break; }
+    case "redecompose": { const t=T; if(aiState==="ready"){ el.disabled=true; el.textContent="Planning…"; try{ const r=await aiDecompose(t); const done=t.steps.filter(s=>s.done).map(x=>({...x, ms:undefined})); t.dod=r.dod; t.milestones=r.milestones; t.steps=[...done, ...r.steps]; t.aiDone=true; }catch(e){ toast("Claude couldn't plan this right now. Your steps are unchanged."); } } else { const r=templateFor(t); t.dod=r.dod; t.milestones=r.milestones; t.steps=[...t.steps.filter(s=>s.done).map(x=>({...x, ms:undefined})), ...r.steps]; } buildPlan(); save(); render(); break; }
     case "complete-task": T.status="done"; T.steps.forEach(s=>s.done=true); award(20,`Milestone reached: ${T.name}`); buildPlan(); save(); render(); break;
     case "reopen": T.status="open"; save(); render(); break;
     case "ask-delete": ui.confirmDel=id; render(); break;
@@ -1139,7 +1417,8 @@ document.addEventListener("submit", ev => {
   if(f.classList.contains("edit")){
     const t = S.tasks.find(x=>x.id===f.dataset.id); const fd = new FormData(f);
     t.name = fd.get("name").trim()||t.name; t.area = fd.get("area");
-    const dl = fd.get("deadline"); if(dl!==(t.deadline||"")){ t.deadline = dl||null; t.deadlineSource = dl?"stated":null; t.pastDue=false; }
+    const tt = fd.get("ttype"); const ntm = {type:tt, date:fd.get("tdate")||null, days:fd.get("tdays"), perWeek:+fd.get("tper"), quote:t.timing.quote};
+    if(tt!==t.timing.type || ntm.date!==(t.timing.date||null) || (tt==="horizon" && ntm.days!==String(t.timing.days)) || (tt==="ongoing" && ntm.perWeek!==t.timing.perWeek)){ setTiming(t, ntm); t.pastDue=false; if((tt==="hard"||tt==="target") && !ntm.date) toast("Pick a date for that, or choose a time window instead."); }
     t.othersWaiting = !!fd.get("waiting");
     const dep = fd.get("dep"); t.dependsOn = dep ? [dep] : [];
     t.dod.criteria = fd.get("criteria").split("\n").map(s=>s.trim()).filter(Boolean);
@@ -1155,7 +1434,11 @@ document.addEventListener("change", ev => {
   const el = ev.target;
   if(el.dataset.cap!==undefined){ S.prefs.capacity[el.dataset.cap] = +el.value; buildPlan(); save(); render(); }
   if(el.dataset.pref){ S.prefs[el.dataset.pref] = el.dataset.pref==="restDay" ? +el.value : el.value; buildPlan(); save(); render(); }
-  if(el.dataset.pi!==undefined && ui.capture && ui.capture.parsed){ const p=ui.capture.parsed.tasks[+el.dataset.pi]; p[el.dataset.pf]=el.value||null; if(el.dataset.pf==="deadline") p.deadlineSource=el.value?"stated":null; if(el.dataset.pf==="name") p.kind=kindOf(el.value); }
+  if(el.dataset.pi!==undefined && ui.capture && ui.capture.parsed){ const p=ui.capture.parsed.tasks[+el.dataset.pi]; const f=el.dataset.pf;
+    if(f==="ttype"){ p.timing = {type:el.value, date:p.timing.date||null, days:p.timing.days||"none", perWeek:p.timing.perWeek||2, quote:p.timing.quote}; if(el.value==="hard"&&!p.timing.date) p.timing.date=addDays(todayISO(),7); if(el.value==="target"&&!p.timing.date) p.timing.date=addDays(todayISO(),30); renderCapture(); }
+    else if(f==="tdate") p.timing.date=el.value||null; else if(f==="tdays") p.timing.days=el.value; else if(f==="tper") p.timing.perWeek=+el.value;
+    else { p[f]=el.value||null; if(f==="name") p.kind=kindOf(el.value); } }
+  if(el.dataset.ttypeSelect!==undefined){ const f=el.closest("form"); if(f) f.dataset.ttype=el.value; }
 });
 document.addEventListener("input", ev => { if(ev.target.id==="cap-text" && ui.capture) ui.capture.text = ev.target.value; });
 document.addEventListener("keydown", ev => {
