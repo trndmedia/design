@@ -1,0 +1,1177 @@
+<title>Autopilot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one calm column built around a single "next step" card; everything else is progressive disclosure below it or behind tabs. */
+:root{
+  --bg:#EEF1EE; --surface:#FFFFFF; --sunk:#E3E8E4; --ink:#16201D; --muted:#56635E; --line:#CDD6D1;
+  --accent:#1D6B57; --accent-ink:#FFFFFF; --accent-soft:#D5EAE2;
+  --reward:#C98A16; --reward-soft:#F8EBCF;
+  --a-uni:#2F63C9; --a-startup:#1C8656; --a-writing:#B8476C; --a-study:#7C55C8; --a-personal:#A86C10; --a-other:#5F6E68; --a-rest:#4F8A9A;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:14px; --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18211E; --sunk:#202B27; --ink:#E7EEEA; --muted:#9AA9A3; --line:#2E3B36;
+  --accent:#5FC3A2; --accent-ink:#0B1714; --accent-soft:#1E3A31;
+  --reward:#E9B54C; --reward-soft:#3A2F17;
+  --a-uni:#7EA6F2; --a-startup:#5DC793; --a-writing:#EB8DAD; --a-study:#B596F0; --a-personal:#E1A851; --a-other:#9AABA4; --a-rest:#86C2D1;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18211E; --sunk:#202B27; --ink:#E7EEEA; --muted:#9AA9A3; --line:#2E3B36;
+  --accent:#5FC3A2; --accent-ink:#0B1714; --accent-soft:#1E3A31;
+  --reward:#E9B54C; --reward-soft:#3A2F17;
+  --a-uni:#7EA6F2; --a-startup:#5DC793; --a-writing:#EB8DAD; --a-study:#B596F0; --a-personal:#E1A851; --a-other:#9AABA4; --a-rest:#86C2D1;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:16px 120px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:100%}
+textarea{width:100%;resize:vertical}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:22px;font-weight:800;letter-spacing:-.01em}
+.xp{display:inline-flex;align-items:center;gap:6px;background:var(--reward-soft);color:var(--ink);border-radius:999px;padding:4px 12px;font-weight:700;border:0}
+.xp b{color:var(--reward);font-family:var(--f-mono)}
+nav.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:12px;margin-top:14px;overflow-x:auto}
+nav.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:700;color:var(--muted);white-space:nowrap;flex:1}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.status{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--muted);flex:none}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 16px;font-weight:700}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.big{font-size:19px;padding:14px 26px;border-radius:14px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:8px 10px}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn.reward{background:var(--reward);color:#1d1606;border-color:var(--reward)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stack{display:flex;flex-direction:column;gap:12px}
+section{margin-top:22px}
+
+/* area chip */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;border-radius:999px;padding:2px 10px 2px 8px;background:color-mix(in srgb,var(--c) 14%, transparent);color:var(--c)}
+.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.tag{font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;background:var(--sunk);color:var(--muted)}
+.tag.warn{background:color-mix(in srgb,var(--a-writing) 16%, transparent);color:var(--a-writing)}
+
+/* focus line */
+.focusline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.focusline .day{font-family:var(--f-display);font-weight:700;font-size:17px}
+
+/* next card */
+.next{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:22px 22px 18px;margin-top:12px;border:1px solid var(--line);position:relative;overflow:hidden}
+.next::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+.next .task{font-weight:700;color:var(--muted);font-size:15px;margin-top:10px}
+.next .action{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,5.2vw,38px);letter-spacing:-.015em;margin:4px 0 10px;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:15px}
+.meta b{color:var(--ink)}
+.why{margin:14px 0 0;padding:12px 14px;background:var(--sunk);border-radius:12px;font-size:15px}
+.why strong{font-weight:700}
+details{margin-top:12px}
+details>summary{cursor:pointer;font-weight:700;color:var(--accent);list-style:none;display:inline-flex;gap:6px;align-items:center}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸";transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+.dod{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.dod li{display:flex;gap:8px;font-size:15px}
+.dod li::before{content:"";flex:none;width:16px;height:16px;margin-top:3px;border:2px solid var(--line);border-radius:5px}
+.dodnote{font-size:14px;color:var(--muted);margin-top:8px}
+.cta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.prompt{margin-top:14px;border:1px dashed var(--accent);background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:15px}
+.prompt .lvl{font-family:var(--f-mono);font-size:12px;color:var(--accent);font-weight:700}
+
+/* dose list */
+.dose{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 0}
+.dose-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bar{height:8px;border-radius:99px;background:var(--sunk);overflow:hidden;flex:1;min-width:120px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.item{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .t{min-width:0}
+.item .t small{display:block;color:var(--muted);font-size:13px}
+.item.done .t span{text-decoration:line-through;color:var(--muted)}
+.item.current{background:var(--accent-soft)}
+.item.brk .t span{color:var(--muted);font-style:italic}
+.check{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;color:var(--accent-ink)}
+.item.done .check{background:var(--accent);border-color:var(--accent)}
+.kind{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+.cue{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--sunk);font-size:15px}
+.footer-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:18px}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.wday{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.wday.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.wday .dn{font-family:var(--f-display);font-weight:700}
+.wday .prim{font-weight:700;font-size:14px;color:var(--c);line-height:1.2}
+.wday .sec{font-size:13px;color:var(--muted)}
+.cap{height:6px;background:var(--sunk);border-radius:9px;overflow:hidden;display:flex}
+.cap i{display:block;height:100%}
+.sess{font-size:12px;color:var(--muted);border-left:3px solid var(--c);padding-left:6px;overflow-wrap:anywhere}
+.dl{font-size:12px;font-weight:700;color:var(--a-writing)}
+@media (max-width:720px){.week{grid-template-columns:1fr}.wday{display:grid;grid-template-columns:90px 1fr;column-gap:12px}.wday>*{grid-column:2}.wday .dn{grid-column:1;grid-row:1 / span 6}}
+
+/* work */
+.area-h{display:flex;align-items:center;gap:8px;margin:18px 0 6px}
+.trow{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:8px}
+.trow-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.trow-top .n{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:14px;min-width:0}
+.seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:7px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* progress */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.metric .v{font-family:var(--f-mono);font-size:24px;font-weight:700}
+.metric .d{font-size:13px;color:var(--muted)}
+.reward-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.reward-row:first-child{border-top:0}
+
+/* overlay */
+.overlay{position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto}
+.overlay .wrap{padding-top:calc(16px + env(safe-area-inset-top, 0px))}
+.sheet-back{position:fixed;inset:0;background:rgba(10,16,14,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:760px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:20px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+@media (min-width:760px){.sheet-back{align-items:center}.sheet{border-radius:20px;padding:24px}}
+.timer{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:18px}
+.ring{width:132px;height:132px;flex:none}
+.ring circle{fill:none;stroke-width:10}
+.ring .bgc{stroke:var(--sunk)}
+.ring .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+.ring text{fill:var(--ink);font-family:var(--f-mono);font-weight:700;font-size:26px}
+.chain{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.chain i{width:22px;height:6px;border-radius:9px;background:var(--line)}
+.chain i.d{background:var(--accent)}
+.chain i.c{background:var(--reward)}
+.nextsteps{margin-top:12px;display:grid;gap:6px}
+.nextsteps div{color:var(--muted);font-size:15px;padding-left:12px;border-left:2px solid var(--line)}
+.stepbig{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,6vw,44px);letter-spacing:-.015em;line-height:1.1;margin:10px 0 6px;text-wrap:balance}
+
+.fab{position:fixed;right:calc(18px + env(safe-area-inset-right, 0px));bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:40;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:14px 20px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:8px;align-items:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom, 0px));z-index:80;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;max-width:calc(100% - 32px);box-shadow:var(--shadow);animation:pop .25s ease-out}
+.toast b{color:var(--reward)}
+@keyframes pop{from{transform:translate(-50%,10px);opacity:.3}to{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.parsed{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;display:grid;gap:8px}
+.parsed .row input[type=text]{flex:1;min-width:160px}
+.q{background:var(--reward-soft);border-radius:10px;padding:10px 12px;font-size:15px}
+.banner{background:var(--reward-soft);border-radius:12px;padding:10px 14px;font-size:14px;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-top:14px}
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.rest{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px 22px;margin-top:12px}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+</style>
+
+<div class="wrap" id="app"></div>
+<button class="fab" data-act="capture" aria-label="Capture a thought or task">＋ Capture</button>
+<div id="layer"></div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+/* ============ utilities ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const DAY = 86400000;
+const iso = d => { const x = new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); };
+const todayISO = () => iso(new Date());
+const parseISO = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (s, n) => iso(parseISO(s).getTime() + n*DAY + 3600000);
+const daysUntil = s => Math.round((parseISO(s) - parseISO(todayISO())) / DAY);
+const WD = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDay = s => { const d = parseISO(s); return WD[d.getDay()]+" "+d.getDate()+" "+MO[d.getMonth()]; };
+const relDay = s => { const n = daysUntil(s); return n===0?"today":n===1?"tomorrow":n===-1?"yesterday":n<0?`${-n} days ago`:n<7?WD[parseISO(s).getDay()]:fmtDay(s); };
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+
+const AREAS = {
+  "University":       {c:"--a-uni",      kw:/\b(calculus|homework|hw|class|course|exam|midterm|final|quiz|lecture|lab report|assignment|problem set|pset|professor|seminar|uni|university|thesis|statistics|physics|chemistry|biology)\b/i},
+  "Startup":          {c:"--a-startup",  kw:/\b(mvp|startup|prosumer|launch|investor|pitch|deck|customer|users?|product|feature|roadmap|cofounder|co-founder|landing page|fundrais\w*|ship|prototype|app|beta)\b/i},
+  "Writing":          {c:"--a-writing",  kw:/\b(article|draft|substack|essay|blog|post|newsletter|write|writing|piece|op-?ed)\b/i},
+  "Independent study":{c:"--a-study",    kw:/\b(study|studying|learn|learning|anthropology|reading|read|book|chapter|course notes|curriculum|philosophy|history|language)\b/i},
+  "Personal":         {c:"--a-personal", kw:/\b(laundry|groceries|grocery|rent|bills?|doctor|dentist|clean|cleaning|gym|workout|taxes|call mom|call dad|appointment|errands?|dishes|pharmacy|bank)\b/i},
+  "Other":            {c:"--a-other",    kw:/$^/}
+};
+const areaVar = a => `var(${(AREAS[a]||AREAS.Other).c})`;
+const chip = a => `<span class="chip" style="--c:${areaVar(a)}">${esc(a)}</span>`;
+const LVL = ["Low","Medium","High"];
+
+/* ============ decomposition templates (fallback when Claude is unavailable) ============ */
+function kindOf(name){
+  if(/\b(write|draft|article|essay|post|substack|newsletter|blog|chapter|report)\b/i.test(name)) return "write";
+  if(/\b(homework|hw|problem set|pset|calculus|assignment|exercises|worksheet|quiz)\b/i.test(name)) return "problem";
+  if(/\b(study|read|reading|learn|anthropology|review notes|revise)\b/i.test(name)) return "study";
+  if(/\b(mvp|build|prototype|ship|feature|app|code|landing page|deck|website)\b/i.test(name)) return "build";
+  if(/\b(email|call|pay|book|schedule|form|apply|laundry|groceries|clean|rent|bill|text|reply|send)\b/i.test(name)) return "admin";
+  return "other";
+}
+function templateFor(t){
+  const n = t.name, k = t.kind || kindOf(n);
+  const T = {
+    write: {
+      outcome:`A complete rough draft of “${n}”`, deliverable:"One document that reads from beginning to end",
+      criteria:["A working headline exists","The introduction is written","Three main sections are present","Each section states its central argument","A conclusion exists","You can read it start to finish"],
+      quality:"Rough draft. It does not need to be polished.", scope:"No line editing and no new research today.", stop:"Stop when every section has words in it.", verify:"Read it once, top to bottom, against the checklist.",
+      steps:[["Open a blank document and type the working title",3,"Open your writing app, create a new document, and type any title. It can change later."],
+             ["Write one sentence: the central claim",5,"Finish this sentence: “The point of this piece is…”"],
+             ["List three supporting ideas",10,"Bullet points are fine. Three lines, a few words each."],
+             ["Turn the three ideas into section headings",5,"Copy each bullet up as a heading."],
+             ["Draft the introduction",20,"Explain the problem in plain words. Aim for one short paragraph."],
+             ["Draft the first section",25,"Write under the first heading until you've made its point once."],
+             ["Draft sections two and three",40,"Same move: make each section's point once. Messy is fine."],
+             ["Write a short conclusion",15,"Two or three sentences that restate the claim."],
+             ["Read it through against the checklist",10,"Tick each item. If one is missing, add a rough version."]]
+    },
+    problem: {
+      outcome:`“${n}” submitted`, deliverable:"Every question attempted, with work shown, and uploaded",
+      criteria:["Every question has an attempt","Work is shown","Answers you can check are checked","Submitted and the upload is confirmed"],
+      quality:"Attempted honestly. Perfect answers are not required.", scope:"Only this assignment. No extra practice sets.", stop:"Stop once it's submitted.", verify:"The course page shows it as submitted.",
+      steps:[["Open the course page and locate the assignment",3,"Open your browser, go to the course site, open Assignments, and click this one."],
+             ["Read question 1 and write what it asks in one line",5,"Don't solve it yet. Just say what it wants."],
+             ["Find one worked example that matches",10,"Look in your notes or the textbook for a solved problem of the same type."],
+             ["Attempt question 1",15,"Follow the example step by step. A wrong attempt still counts."],
+             ["Work through the next questions, one at a time",40,"Same pattern for each: read, find a matching example, attempt."],
+             ["Check the answers you can verify",10,"Plug answers back in, or compare with the back of the book."],
+             ["Submit and confirm the upload",5,"Upload, then refresh the page to see that it's marked submitted."]]
+    },
+    study: {
+      outcome:`Key ideas from “${n}” recorded in your own words`, deliverable:"A note with three concepts and one open question",
+      criteria:["One focused reading session is done","Three concepts are written in your own words","One follow-up question is written down"],
+      quality:"Exposure plus notes. Mastery is not the goal today.", scope:"One reading or one chapter, not the whole topic.", stop:"Stop after the three concepts and the question.", verify:"You can explain one concept out loud in a sentence.",
+      steps:[["Open the reading and a blank notes page",3,"Put the text and the notes page side by side."],
+             ["Read for 15 minutes",15,"Read only. Underline anything that seems important."],
+             ["Write three concepts in your own words",10,"One or two sentences each. Don't copy the text."],
+             ["Write one question it raised",3,"Something you'd ask the author or look up next time."]]
+    },
+    build: {
+      outcome:`A working next milestone for “${n}”`, deliverable:"One user flow that works end to end",
+      criteria:["Today's single target is written down","The target works end to end at least once","Rough edges are allowed","The next step is written down"],
+      quality:"Prototype quality, not production-ready.", scope:"One target only. Park other ideas in a list.", stop:"Stop when the target works once and the next step is noted.", verify:"Run the flow yourself once without help.",
+      steps:[["Open the project and write today's single target in one line",3,"Example: “A user can sign up and see their dashboard.”"],
+             ["List the 3 to 5 pieces that target needs",10,"Small, concrete pieces. Order them."],
+             ["Build the smallest piece",25,"Pick the piece with the fewest unknowns."],
+             ["Build the next piece",25,"Keep going down the list."],
+             ["Run the flow once, end to end",10,"Click through it like a user would."],
+             ["Write down what comes next",5,"One line so tomorrow's first step is ready."]]
+    },
+    admin: {
+      outcome:`“${n}” handled`, deliverable:"The thing is done and confirmed",
+      criteria:["You have what you need","It's done","You've confirmed it went through"],
+      quality:"Done is enough.", scope:"Just this one item.", stop:"Stop once it's confirmed.", verify:"You have a confirmation, receipt or reply.",
+      steps:[["Gather what you need",5,"Open the app, email or document this needs."],["Do it",15,"Complete the main action in one go."],["Confirm it went through",2,"Check for a receipt or confirmation."]]
+    },
+    other: {
+      outcome:`Real progress on “${n}”`, deliverable:"Something you can point to",
+      criteria:["You've written what done looks like","You've worked on it for one session","You know the next step"],
+      quality:"Progress, not perfection.", scope:"One session.", stop:"Stop after the session and the next-step note.", verify:"You can name what changed.",
+      steps:[["Write what done looks like in one line",3,"Finish: “This is finished when…”"],["Do the first 10 minutes",10,"Start with the most obvious piece."],["Keep going for 20 minutes",20,"Same piece, or the next obvious one."],["Write down the next step",3,"One line for next time."]]
+    }
+  }[k];
+  return {
+    dod:{outcome:T.outcome, deliverable:T.deliverable, criteria:T.criteria, quality:T.quality, scope:T.scope, stop:T.stop, verify:T.verify},
+    steps:T.steps.map(([text,min,how])=>({id:uid(), text, min, how, done:false}))
+  };
+}
+
+/* ============ natural-language capture (rule-based fallback) ============ */
+function parseDeadline(s){
+  const t = s.toLowerCase(), today = todayISO(), wd = new Date().getDay();
+  if(/\b(today|tonight|this evening)\b/.test(t)) return today;
+  if(/\btomorrow\b/.test(t)) return addDays(today,1);
+  let m = t.match(/\bin (\d+) days?\b/); if(m) return addDays(today, +m[1]);
+  if(/\bnext week\b/.test(t)) return addDays(today, 7);
+  if(/\b(this weekend|by the weekend)\b/.test(t)) return addDays(today, (6-wd+7)%7 || 7);
+  if(/\b(end of (the )?week|eow)\b/.test(t)) return addDays(today, (5-wd+7)%7 || 7);
+  for(let i=0;i<7;i++){ const name = WD[i].toLowerCase(); if(new RegExp("\\b(by |on |due |this |next )?("+name+"|"+name.slice(0,3)+")\\b").test(t)){ let diff=(i-wd+7)%7; if(diff===0) diff=7; if(new RegExp("next "+name).test(t) && diff<7) diff+=7; return addDays(today, diff);} }
+  m = t.match(/\b(\d{1,2})\/(\d{1,2})\b/); if(m){ const y=new Date().getFullYear(); let d=iso(new Date(y,+m[1]-1,+m[2])); if(daysUntil(d)<-30) d=iso(new Date(y+1,+m[1]-1,+m[2])); return d; }
+  m = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? (\d{1,2})\b/); if(m){ const y=new Date().getFullYear(); let d=iso(new Date(y,MO.map(x=>x.toLowerCase()).indexOf(m[1]),+m[2])); if(daysUntil(d)<-30) d=iso(new Date(y+1,MO.map(x=>x.toLowerCase()).indexOf(m[1]),+m[2])); return d; }
+  return null;
+}
+function ruleParse(text){
+  const VERBS = "need|have|want|should|must|finish|work|draft|write|study|read|call|email|build|do|prepare|submit|book|pay|clean|start|review|fix|send|plan|practice|learn|apply|ship|launch|make|get|update";
+  const parts = text.split(new RegExp(`\\n+|;|\\.\\s+|,\\s*(?:and\\s+)?(?:then\\s+)?|\\s+and\\s+(?=(?:also\\s+)?(?:i\\s+)?(?:${VERBS})\\b)`,"i"));
+  const out = [];
+  for(let p of parts){
+    p = p.trim().replace(/\.$/,"");
+    if(p.length < 3) continue;
+    const deadline = parseDeadline(p);
+    let name = p.replace(/^(and |also |then |plus )+/i,"").replace(/^(i (really )?(need|have|want|should|must|gotta|got) to|i'?ve got to|need to|have to|gotta|must|should|i should|i will|i'll|todo:?|to do:?)\s+/i,"")
+      .replace(/\b(by|before|on|due|for)?\s*(today|tonight|tomorrow|this weekend|next week|end of (the )?week|in \d+ days?|(next |this )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\d{1,2}\/\d{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2})\b/ig,"")
+      .replace(/\s+(which is |it's |its )?(due|by)\s*$/i,"").replace(/\s{2,}/g," ").trim();
+    if(!name) continue;
+    name = name[0].toUpperCase()+name.slice(1);
+    let area = "Other"; for(const [a,v] of Object.entries(AREAS)) if(v.kw.test(p)){ area=a; break; }
+    const kind = kindOf(name);
+    const waiting = /\b(for (my |the )?(team|cofounder|co-founder|client|boss|professor|group)|waiting|promised|owe)\b/i.test(p);
+    out.push({ name, area, deadline, deadlineSource: deadline?"stated":null, kind,
+      importance: area==="Startup"||area==="University"?3:2, consequence: deadline && /homework|exam|assignment|submit|rent|tax|bill/i.test(p)?3:2,
+      othersWaiting: waiting, difficulty: kind==="admin"?1:kind==="study"?2:3, friction: kind==="admin"?1:kind==="write"||kind==="problem"?3:2,
+      estMin: null, dependsOn: [] });
+  }
+  const questions = out.filter(t=>t.area==="University" && !t.deadline && t.kind==="problem").slice(0,2).map(t=>({task:t.name, question:`When is “${t.name}” due?`, why:"A due date changes where it goes this week."}));
+  return {tasks: out, questions};
+}
+
+/* ============ AI layer (Claude via the page's sample capability) ============ */
+const samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").catch(()=>null) : Promise.resolve(null);
+let aiState = "checking"; // checking | ready | off | error
+samplePromise.then(s => { aiState = s ? "ready" : "off"; renderStatus(); });
+async function ai(prompt, tier){
+  const s = await samplePromise;
+  if(!s) throw {code:"unavailable"};
+  try { return await s.json(prompt, {modelTier: tier||"default"}); }
+  catch(e){ if(e && (e.code==="not_granted")) { aiState="off"; renderStatus(); } throw e; }
+}
+async function aiParse(text){
+  const areas = Object.keys(AREAS).join(", ");
+  const prompt = `You structure brain dumps for a person with ADHD. Today is ${fmtDay(todayISO())} (${todayISO()}).
+Turn the text below into tasks. Keep the person's wording for task names but make each one short and concrete. Do not invent tasks.
+Areas must be one of: ${areas}.
+For deadlines: only use one that is stated or strongly implied; give it as YYYY-MM-DD and set deadlineSource to "stated" or "assumed". Otherwise null.
+Rate importance (long-term goal value) and consequence (cost of missing it) 1-3, difficulty (cognitive load) 1-3, friction (how hard it is to start) 1-3, estMin (total minutes, realistic, people underestimate), kind one of write|problem|study|build|admin|other.
+dependsOn lists names of other tasks in this list that must be done first.
+Only ask a question if the missing answer would materially change scheduling (at most 2).
+Reply with only JSON: {"tasks":[{"name":"","area":"","deadline":null,"deadlineSource":null,"importance":2,"consequence":2,"othersWaiting":false,"difficulty":2,"friction":2,"estMin":60,"kind":"other","dependsOn":[]}],"questions":[{"task":"","question":"","why":""}]}
+
+Text:
+"""${text}"""`;
+  const r = await ai(prompt, "default");
+  if(!r || !Array.isArray(r.tasks)) throw {code:"shape"};
+  r.tasks = r.tasks.filter(t=>t && t.name).map(t=>({
+    name:String(t.name).slice(0,120), area: AREAS[t.area]?t.area:"Other",
+    deadline: /^\d{4}-\d{2}-\d{2}$/.test(t.deadline||"")?t.deadline:null, deadlineSource:t.deadline?(t.deadlineSource==="stated"?"stated":"assumed"):null,
+    importance:clamp(+t.importance||2,1,3), consequence:clamp(+t.consequence||2,1,3), othersWaiting:!!t.othersWaiting,
+    difficulty:clamp(+t.difficulty||2,1,3), friction:clamp(+t.friction||2,1,3), estMin:+t.estMin||null,
+    kind:["write","problem","study","build","admin","other"].includes(t.kind)?t.kind:kindOf(t.name), dependsOn:Array.isArray(t.dependsOn)?t.dependsOn.map(String):[]
+  }));
+  r.questions = Array.isArray(r.questions)?r.questions.slice(0,2):[];
+  return r;
+}
+async function aiDecompose(t){
+  const prompt = `You are an executive-function coach using task analysis and forward chaining. Break this task into a definition of done and small sequential steps.
+Task: "${t.name}" (area: ${t.area}${t.deadline?`, due ${t.deadline}`:""}${t.notes?`, notes: ${t.notes}`:""}).
+Rules: the first step is a tiny physical action of 5 minutes or less (open, locate, write one line). Steps are 2-25 minutes each, 4-9 steps, in order. "how" says exactly where to go and what to do in one sentence. "tiny" is an even smaller 2-minute version of the step. Make the definition of done a specific, checkable milestone with a stopping point; distinguish rough draft vs polished, prototype vs production, exposure vs mastery.
+Reply with only JSON: {"outcome":"","deliverable":"","criteria":["",""],"quality":"","scope":"","stop":"","verify":"","steps":[{"text":"","min":5,"how":"","tiny":""}]}`;
+  const r = await ai(prompt, "default");
+  if(!r || !Array.isArray(r.steps) || !r.steps.length) throw {code:"shape"};
+  return {
+    dod:{outcome:String(r.outcome||""), deliverable:String(r.deliverable||""), criteria:(r.criteria||[]).map(String).slice(0,8), quality:String(r.quality||""), scope:String(r.scope||""), stop:String(r.stop||""), verify:String(r.verify||"")},
+    steps:r.steps.slice(0,10).map(s=>({id:uid(), text:String(s.text||"").slice(0,140), min:clamp(Math.round(+s.min||10),2,45), how:String(s.how||""), tiny:String(s.tiny||""), done:false}))
+  };
+}
+
+/* ============ state ============ */
+const KEY = "autopilot.v1";
+function seed(){
+  const T = (o) => { const t = Object.assign({id:uid(), createdAt:Date.now(), status:"open", deferrals:0, dependsOn:[], notes:"", example:true, aiDone:false}, o); Object.assign(t, templateFor(t)); return t; };
+  const tasks = [
+    T({name:"Calculus Homework 3", area:"University", kind:"problem", deadline:addDays(todayISO(),1), deadlineSource:"stated", importance:2, consequence:3, othersWaiting:false, difficulty:3, friction:3}),
+    T({name:"Prosumer MVP: onboarding flow", area:"Startup", kind:"build", deadline:addDays(todayISO(),9), deadlineSource:"assumed", importance:3, consequence:2, othersWaiting:true, difficulty:3, friction:2}),
+    T({name:"Draft the information overload article", area:"Writing", kind:"write", deadline:addDays(todayISO(),5), deadlineSource:"assumed", importance:2, consequence:1, othersWaiting:false, difficulty:2, friction:3}),
+    T({name:"Anthropology reading: Geertz, Thick Description", area:"Independent study", kind:"study", deadline:null, importance:2, consequence:1, othersWaiting:false, difficulty:2, friction:1}),
+    T({name:"Pay phone bill", area:"Personal", kind:"admin", deadline:addDays(todayISO(),3), deadlineSource:"stated", importance:1, consequence:2, othersWaiting:false, difficulty:1, friction:1}),
+  ];
+  return {
+    v:1, tasks, xp:0, xpLog:[], plan:null, week:null, weekDate:null, lastOpen:Date.now(), updatedAt:0, hasExamples:true,
+    prefs:{ capacity:{0:45,1:150,2:150,3:150,4:150,5:120,6:180}, restDay:0, sequence:"easy-first", session:null,
+            routines:[{id:uid(), cue:"After making coffee", action:"open today's first step"},{id:uid(), cue:"Before bed", action:"glance at tomorrow's first action"}] },
+    rewards:[{id:uid(), name:"10 minutes of free browsing", cost:30, minutes:10},{id:uid(), name:"One episode of a show", cost:80, minutes:30},{id:uid(), name:"Coffee out", cost:120, minutes:30}],
+    learn:{}, promptStats:{}, metrics:{ttfa:[], shown:0, accepted:0, overridden:0, recoveries:[], doseDays:[], planned:{}}, sessions:[], skipToday:{}, doneForDay:null, recovery:null, lastDisruption:null
+  };
+}
+function load(){ try{ const s = localStorage.getItem(KEY); if(s) return JSON.parse(s); }catch(e){} return null; }
+let S = load() || seed();
+let cloud = null, cloudTimer = null;
+function save(){
+  S.updatedAt = Date.now();
+  if(S.sessions.length>300) S.sessions = S.sessions.slice(-300);
+  if(S.xpLog.length>200) S.xpLog = S.xpLog.slice(-200);
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  if(cloud){ clearTimeout(cloudTimer); cloudTimer = setTimeout(pushCloud, 1200); }
+}
+async function pushCloud(){ if(!cloud) return; try{ await cloud.ref.set({json:JSON.stringify(S), updatedAt:S.updatedAt}); cloud.ok=true; }catch(e){ cloud.ok=false; } renderStatus(); }
+(async()=>{
+  try{
+    if(!(window.claude && window.claude.use)) return;
+    const [db,user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if(!db || !user) return;
+    const id = await user.id(); if(!id) return;
+    const ref = db.doc("data/users/"+id+"/autopilot");
+    const snap = await ref.get();
+    cloud = {ref, ok:true};
+    if(snap.exists){ const d = snap.data(); if(d && d.json){ const remote = JSON.parse(d.json); if((remote.updatedAt||0) > (S.updatedAt||0)){ S = remote; dailyChecks(); render(); } } }
+    if(!snap.exists || (S.updatedAt||0) > ((snap.data()||{}).updatedAt||0)) pushCloud();
+    renderStatus();
+  }catch(e){}
+})();
+
+/* ============ learning ============ */
+const ratio = area => clamp((S.learn[area]||{r:1}).r, .5, 2.5);
+const est = (t, st) => Math.max(2, Math.round(st.min * ratio(t.area)));
+function learnFrom(t, st, actualMin){
+  if(actualMin < 1) return;
+  const L = S.learn[t.area] || {r:1, n:0};
+  const obs = clamp(actualMin / st.min, .3, 4);
+  L.r = L.n===0 ? (L.r*0.5+obs*0.5) : L.r*0.7 + obs*0.3; L.n++;
+  S.learn[t.area] = L;
+}
+function sessionLen(){ // learned effective session length
+  if(S.prefs.session) return S.prefs.session;
+  const done = S.sessions.filter(s=>s.completed && s.actual>0).map(s=>s.actual);
+  return done.length>=4 ? clamp(Math.round(median(done)/5)*5, 10, 45) : null;
+}
+function startLevel(t){ // prompt fading: begin at the level that has worked for this area
+  const st = S.promptStats[t.area]; if(!st) return 1;
+  const lv = median(st.slice(-5)); return lv && lv>1.5 ? Math.round(lv) : 1;
+}
+
+/* ============ prioritization ============ */
+function remainingMin(t){ return t.steps.filter(s=>!s.done).reduce((a,s)=>a+est(t,s),0); }
+function neglectDays(area){
+  const last = S.sessions.filter(s=>s.area===area).map(s=>s.end||s.start).sort().pop();
+  if(!last) return S.tasks.some(t=>t.area===area) ? Math.min(7, Math.round((Date.now()-Math.min(...S.tasks.filter(t=>t.area===area).map(t=>t.createdAt)))/DAY)) : 0;
+  return Math.floor((Date.now()-last)/DAY);
+}
+function isBlocked(t){ return (t.dependsOn||[]).some(id=>{ const d=S.tasks.find(x=>x.id===id); return d && d.status!=="done"; }); }
+function scoreTask(t, focus){
+  const f = []; let s = 0;
+  if(t.deadline){
+    const d = daysUntil(t.deadline), rem = remainingMin(t);
+    let u = d<0?7 : d===0?10 : d===1?8 : d<=3?6 : d<=7?3.5 : d<=14?1.5 : .5;
+    if(d>=0 && rem > (d+1)*60) u += 2;
+    s += u;
+    f.push({w:u, text: d<0?`its deadline was ${relDay(t.deadline)}`: d===0?"it's due today": d===1?"it's due tomorrow":`it's due ${relDay(t.deadline)}`});
+  }
+  const c = t.consequence*1.5; s+=c; if(t.consequence===3) f.push({w:c-1, text:"missing it has a real consequence"});
+  const i = t.importance*1.5; s+=i; if(t.importance===3) f.push({w:i-1.5, text:"it moves a long-term goal forward"});
+  if(t.othersWaiting){ s+=3; f.push({w:3, text:"someone is waiting on it"}); }
+  const unblocks = S.tasks.filter(o=>o.status!=="done" && (o.dependsOn||[]).includes(t.id)).length;
+  if(unblocks){ s+=2*unblocks; f.push({w:2*unblocks, text:`${unblocks} other task${unblocks>1?"s":""} can't start until it's done`}); }
+  if(t.deferrals){ const d=Math.min(t.deferrals,3); s+=d; f.push({w:d, text:`it's been pushed back ${t.deferrals} time${t.deferrals>1?"s":""}, so it gets a smaller first step`}); }
+  const nd = neglectDays(t.area); if(nd>=3){ const n=Math.min(nd*.4,2.5); s+=n; f.push({w:n, text:`${t.area} hasn't had attention in ${nd} days`}); }
+  if(focus){ if(focus.primary===t.area){ s+=2.5; f.push({w:2.4, text:`today is a ${t.area} day`}); } else if(focus.secondary===t.area) s+=1.2; }
+  if(!t.steps.some(x=>x.done) && t.deadline && daysUntil(t.deadline)<=2){ s+=1; f.push({w:1.5, text:"it hasn't been started yet"}); }
+  return {score: Math.round(s*10)/10, factors: f.sort((a,b)=>b.w-a.w)};
+}
+function ranked(focus){
+  return S.tasks.filter(t=>t.status!=="done" && !isBlocked(t) && t.steps.some(s=>!s.done))
+    .map(t=>({t, ...scoreTask(t, focus)})).sort((a,b)=>b.score-a.score);
+}
+const joinWords = a => a.length<=1 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+
+/* ============ seven-day focus architecture ============ */
+function capFor(dateISO){ return S.prefs.capacity[parseISO(dateISO).getDay()] ?? 120; }
+function buildWeek(){
+  const open = S.tasks.filter(t=>t.status!=="done" && t.steps.some(s=>!s.done));
+  const areas = [...new Set(open.map(t=>t.area))];
+  const demand = {}; areas.forEach(a=>demand[a]=0);
+  open.forEach(t=>{ const d=t.deadline?daysUntil(t.deadline):30; demand[t.area] += remainingMin(t) * (1 + (t.importance-1)*.3) * (d<=7?1.6:1); });
+  const total = Object.values(demand).reduce((a,b)=>a+b,0)||1;
+  const days = [], usedP = {}, usedS = {}; areas.forEach(a=>{usedP[a]=0; usedS[a]=0;});
+  const workDays = 6, alloc = {}; areas.forEach(a=>alloc[a]=Math.max(1, Math.round(workDays*demand[a]/total)));
+  for(let i=0;i<7;i++){
+    const date = addDays(todayISO(), i), wd = parseISO(date).getDay();
+    const urgentTomorrow = open.find(t=>t.deadline && daysUntil(t.deadline)>=i && daysUntil(t.deadline)<=i+1 && t.consequence>=2);
+    if(wd===S.prefs.restDay && !(i===0 && urgentTomorrow)){
+      days.push({date, primary:"Recovery", secondary: urgentTomorrow?urgentTomorrow.area:"Personal", rest:true, cap:capFor(date)}); continue;
+    }
+    const score = a => {
+      let s = (alloc[a]-usedP[a])*10 + demand[a]/total*20;
+      open.filter(t=>t.area===a && t.deadline).forEach(t=>{ const D=daysUntil(t.deadline); if(i<=D && D>=0) s += 40*(t.consequence/3)/(D-i+1); if(D<i) s-=0; });
+      if(days[i-1] && days[i-1].primary===a) s -= 14;
+      return s;
+    };
+    const order = [...areas].sort((a,b)=>score(b)-score(a));
+    const primary = order[0] || "Personal";
+    const secCands = areas.filter(a=>a!==primary).sort((a,b)=>(score(b)-usedS[b]*8)-(score(a)-usedS[a]*8));
+    const secondary = secCands[0] || null;
+    if(order[0]) usedP[primary]++; if(secondary) usedS[secondary]++;
+    days.push({date, primary, secondary, rest:false, cap:capFor(date)});
+  }
+  // forecast sessions so the week shows realistic load, not every subtask
+  const consumed = {};
+  days.forEach((d,i)=>{
+    d.sessions = []; let budget = d.cap*0.8*(d.rest?.5:1);
+    const take = (t, max) => { let m=0, n=0; for(const st of t.steps){ if(st.done||consumed[st.id]) continue; const e=est(t,st); if(n && m+e>max) break; consumed[st.id]=1; m+=e; n++; if(m>=max) break; } if(m){ d.sessions.push({task:t.name, area:t.area, min:m}); budget-=m; } };
+    const pool = open.filter(t=>!isBlocked(t)).sort((a,b)=>scoreTask(b,d).score-scoreTask(a,d).score);
+    pool.filter(t=>t.deadline && daysUntil(t.deadline)-i<=1 && daysUntil(t.deadline)>=i).forEach(t=>budget>0&&take(t, Math.min(90,budget)));
+    if(!d.rest){ const p = pool.find(t=>t.area===d.primary); if(p && budget>0) take(p, Math.min(50,budget)); }
+    const s2 = pool.find(t=>t.area===d.secondary); if(s2 && budget>0) take(s2, Math.min(d.rest?15:25,budget));
+    d.planned = d.sessions.reduce((a,s)=>a+s.min,0);
+    d.deadlines = open.filter(t=>t.deadline===d.date).map(t=>t.name);
+  });
+  S.week = days; S.weekDate = todayISO();
+}
+
+/* ============ difficulty-aware daily plan + Daily Dose ============ */
+function buildPlan(mode){
+  mode = mode || (S.plan && S.plan.date===todayISO() ? S.plan.mode : "full");
+  buildWeek();
+  const focus = S.week[0];
+  const R = ranked(focus).filter(r=>S.skipToday[r.t.id]!==todayISO());
+  const capRaw = focus.cap * (mode==="light"?.6 : mode==="min"?.4 : 1) * (focus.rest?.5:1);
+  const usable = Math.max(20, capRaw*0.8); // 20% kept as buffer
+  const diffBudget = mode==="full"?14 : mode==="light"?9 : 6;
+  const used = {}; const chunks = [];
+  const take = (t, max, required, why) => {
+    const steps = []; let tot = 0;
+    for(let i=0;i<t.steps.length;i++){ const st=t.steps[i]; if(st.done || used[st.id]) continue; const m=est(t,st); if(steps.length && tot+m>max) break; steps.push(i); used[st.id]=1; tot+=m; if(tot>=max) break; }
+    if(!steps.length) return;
+    const ex = chunks.find(c=>c.taskId===t.id && c.required===required);
+    if(ex){ ex.steps.push(...steps); ex.min += tot; return; }
+    chunks.push({taskId:t.id, steps, min:tot, required, diff:t.difficulty, fric:t.friction, why});
+  };
+  R.filter(r=>r.t.deadline && daysUntil(r.t.deadline)<=1).forEach(r=>take(r.t, mode==="min"?30:75, true, "deadline"));
+  const inPlan = id => chunks.some(c=>c.taskId===id);
+  if(!focus.rest){ const p = R.find(r=>r.t.area===focus.primary && !inPlan(r.t.id)); if(p) take(p.t, mode==="min"?15:40, true, "primary"); }
+  const s = R.find(r=>r.t.area===focus.secondary && !inPlan(r.t.id)); if(s) take(s.t, mode==="min"?10:20, true, "secondary");
+  if(!chunks.length && R[0]) take(R[0].t, 15, true, "top");
+  // trim required to capacity, highest priority kept
+  let total = 0; const req = [];
+  for(const c of chunks){ if(!req.length || total + c.min <= usable){ req.push(c); total += c.min; } else { c.steps.forEach(i=>{ const t=S.tasks.find(x=>x.id===c.taskId); delete used[t.steps[i].id]; }); } }
+  let load = req.reduce((a,c)=>a+c.diff*c.min/25,0);
+  const opt = [];
+  if(mode==="full") for(const r of R){ if(total>=usable) break; const before=chunks.length; take(r.t, Math.min(25, usable-total), false, "optional"); if(chunks.length>before){ const c=chunks[chunks.length-1]; const l=c.diff*c.min/25; if(load+l>diffBudget){ chunks.pop(); continue; } load+=l; total+=c.min; opt.push(c); } }
+  // behavioral sequence: easy entry -> focused work -> manageable completion -> reset -> next
+  let seq = [];
+  const pool = [...req];
+  if(S.prefs.sequence==="easy-first"){
+    const entry = [...pool].sort((a,b)=>(a.fric+a.min/30)-(b.fric+b.min/30))[0];
+    if(entry && entry.min<=20){ seq.push(entry); pool.splice(pool.indexOf(entry),1); }
+  } else { pool.sort((a,b)=>b.diff-a.diff); }
+  while(pool.length){
+    const prev = seq[seq.length-1];
+    let idx = 0;
+    if(prev && prev.diff>=3){ const easier = pool.findIndex(c=>c.diff<3); if(easier>=0 && pool[0].diff>=3) idx = easier; }
+    seq.push(pool.splice(idx,1)[0]);
+  }
+  const items = [];
+  const pushChunk = (c, kind) => c.steps.forEach((i,k)=>{ const t=S.tasks.find(x=>x.id===c.taskId); items.push({taskId:c.taskId, stepId:t.steps[i].id, min:est(t,t.steps[i]), required:c.required, kind: k===0?kind:"", why:c.why}); });
+  seq.forEach((c,ix)=>{
+    const kind = ix===0 && S.prefs.sequence==="easy-first" && seq.length>1 ? "Easy start" : c.diff>=3 ? "Focused work" : ix===seq.length-1 ? "Easy win" : "Steady work";
+    pushChunk(c, kind);
+    if(ix<seq.length-1 && (c.min>=25 || (c.diff>=3 && seq[ix+1].diff>=3))) items.push({brk:true, min:5, required:false, id:uid()});
+  });
+  if(opt.length){ items.push({brk:true, min:10, required:false, id:uid(), label:"Break before optional work"}); opt.forEach(c=>pushChunk(c,"Optional")); }
+  S.plan = {date:todayISO(), mode, items, builtAt:Date.now(), usable:Math.round(usable), cap:Math.round(capRaw), load:Math.round(load*10)/10, diffBudget};
+  S.metrics.planned[todayISO()] = items.filter(x=>x.required&&!x.brk).length;
+}
+const stepOf = it => { const t=S.tasks.find(x=>x.id===it.taskId); if(!t) return {}; const i=t.steps.findIndex(s=>s.id===it.stepId); return {t, st:t.steps[i], i}; };
+function validPlan(){ if(!S.plan) return false; S.plan.items = S.plan.items.filter(it=>it.brk || stepOf(it).st); return true; }
+function nextItem(){
+  const items = S.plan.items;
+  const req = items.filter(it=>!it.brk && it.required);
+  const n = req.find(it=>!stepOf(it).st.done);
+  if(n) return n;
+  return null;
+}
+const doseDone = () => S.plan && S.plan.items.filter(it=>!it.brk&&it.required).every(it=>stepOf(it).st.done);
+
+/* ============ daily checks: new day, missed work, inactivity ============ */
+function dailyChecks(){
+  const gapDays = Math.floor((Date.now() - (S.lastOpen||Date.now()))/DAY);
+  const stale = S.plan && S.plan.date !== todayISO();
+  let missed = 0;
+  if(stale) missed = S.plan.items.filter(it=>!it.brk && it.required && stepOf(it).st && !stepOf(it).st.done).length;
+  if(!S.recovery && (gapDays>=2 || missed>=2)){
+    S.recovery = {reason: gapDays>=2 ? "inactive" : "missed", gapDays, missed, at:Date.now()};
+    S.lastDisruption = Date.now();
+    // count deferrals for tasks that slipped
+    if(stale) new Set(S.plan.items.filter(it=>!it.brk && it.required && stepOf(it).st && !stepOf(it).st.done).map(it=>it.taskId)).forEach(id=>{ const t=S.tasks.find(x=>x.id===id); if(t) t.deferrals++; });
+  }
+  if(stale && missed===1){ const it=S.plan.items.find(it=>!it.brk && it.required && !stepOf(it).st.done); const t=it&&S.tasks.find(x=>x.id===it.taskId); if(t) t.deferrals++; }
+  if(!S.plan || stale) buildPlan("full");
+  S.lastOpen = Date.now();
+  save();
+}
+
+/* ============ reinforcement ============ */
+function award(n, why){
+  S.xp += n; S.xpLog.push({n, why, at:Date.now()});
+  toast(`<b>+${n} XP</b> · ${esc(why)}`);
+}
+let toastT;
+function toast(html){ const el=$("#toast"); el.innerHTML = `<div class="toast">${html}</div>`; clearTimeout(toastT); toastT=setTimeout(()=>el.innerHTML="", 3200); }
+
+/* ============ UI state ============ */
+let tab = "today";
+try{ const h = location.hash.slice(1); if(["today","week","work","progress"].includes(h)) tab = h; }catch(e){}
+let ui = { editing:null, notThis:false, idleLevel:1, shownKey:null, exec:null, capture:null, breakT:null };
+let idleTimer = null;
+
+function renderStatus(){
+  const el = $("#status"); if(!el) return;
+  const aiTxt = aiState==="ready" ? "Claude structures your tasks" : aiState==="checking" ? "Connecting…" : "Built-in rules (Claude not available here)";
+  const saveTxt = cloud ? (cloud.ok ? "Saved to your account" : "Saved on this device; account sync failed") : "Saved on this device";
+  el.innerHTML = `<span class="dot" style="background:${aiState==="ready"?"var(--accent)":"var(--muted)"}"></span>${aiTxt} · ${saveTxt}`;
+}
+
+function render(){
+  if(!validPlan()) buildPlan();
+  const app = $("#app");
+  app.innerHTML = `
+  <div class="top">
+    <div class="brand"><h1>Autopilot</h1><span class="muted small">${esc(fmtDay(todayISO()))}</span></div>
+    <button class="xp" data-tab="progress" title="Your experience points and rewards">★ <b>${S.xp}</b> XP</button>
+  </div>
+  <nav class="tabs" role="tablist">
+    ${[["today","Today"],["week","Week"],["work","All work"],["progress","Progress"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}
+  </nav>
+  <div id="view">${tab==="today"?viewToday():tab==="week"?viewWeek():tab==="work"?viewWork():viewProgress()}</div>
+  <p class="status" id="status"></p>`;
+  renderStatus();
+  armIdle();
+}
+
+/* ---------- TODAY ---------- */
+function viewToday(){
+  if(S.recovery) return viewRecovery();
+  const f = S.week[0];
+  const head = `<div class="focusline"><span class="day">${WD[new Date().getDay()]}</span>
+     ${f.rest ? `<span class="chip" style="--c:var(--a-rest)">Recovery day</span>` : chip(f.primary)}
+     ${f.secondary?`<span class="muted small">then</span> ${chip(f.secondary)}`:""}
+     ${S.plan.mode!=="full"?`<span class="tag">${S.plan.mode==="light"?"Light plan":"Minimum plan"}</span>`:""}</div>`;
+  const examples = S.hasExamples ? `<div class="banner"><span>You're looking at an <b>example workload</b>. Capture your own to replace it.</span><span class="row"><button class="btn" data-act="capture">Capture my work</button><button class="btn ghost" data-act="clear-examples">Clear examples</button></span></div>` : "";
+  if(!S.tasks.some(t=>t.status!=="done")) return head + examples + `<div class="rest"><h2>Nothing is waiting on you.</h2><p class="muted">Tell me what's on your mind and I'll turn it into a plan.</p><button class="btn primary big" data-act="capture">Capture what's on my mind</button></div>`;
+  if(S.doneForDay===todayISO()) return head + `<div class="rest"><div class="label">Done for today</div><h2 style="margin-top:6px">You stopped on purpose. That counts.</h2><p class="muted">Tomorrow's first step is already chosen. Nothing else is expected today.</p><div class="row"><button class="btn" data-act="undo-done-day">Actually, I want to keep going</button></div></div>` + doseList();
+  const n = nextItem();
+  let card;
+  if(!n){
+    card = `<div class="rest"><div class="label" style="color:var(--reward)">Daily Dose complete</div>
+      <h2 style="margin-top:6px;font-size:30px">That's today's dose. Everything else is optional.</h2>
+      <p class="muted">You did the minimum that keeps every area moving. You don't owe the rest of the day anything.</p>
+      <div class="row"><button class="btn reward" data-tab="progress">Spend a reward</button>
+      ${S.plan.items.some(it=>!it.brk && !it.required && !stepOf(it).st.done)?`<button class="btn" data-act="optional">Do one optional step</button>`:""}
+      <button class="btn ghost" data-act="done-day">I'm done for today</button></div></div>`;
+  } else {
+    const {t, st, i} = stepOf(n);
+    const sc = scoreTask(t, f);
+    const top = sc.factors.slice(0,3).map(x=>x.text);
+    const R = ranked(f); const other = R.find(r=>r.t.id!==t.id);
+    const deferLine = other && !(other.t.deadline && daysUntil(other.t.deadline)<=1) && !other.t.othersWaiting ? ` ${esc(other.t.name)} can wait until ${S.week[1]&&S.week[1].primary===other.t.area?"tomorrow":"later this week"} without blocking anyone.` : "";
+    const focusNext = n.kind==="Easy start" ? S.plan.items.find(x=>!x.brk && x.required && x.taskId!==t.id) : null;
+    const entryLine = focusNext ? ` It's a quick way in before ${stepOf(focusNext).t.name}.` : "";
+    const key = n.stepId;
+    if(ui.shownKey!==key){ ui.shownKey=key; ui.idleLevel = startLevel(t); S.metrics.shown++; S.recShownAt = Date.now(); save(); }
+    const lvl = ui.idleLevel;
+    const session = Math.max(n.min, 0);
+    card = `<article class="next" style="--c:${areaVar(t.area)}">
+      <div class="row" style="justify-content:space-between">${chip(t.area)}${n.kind?`<span class="kind">${esc(n.kind)}</span>`:""}</div>
+      <div class="task">${esc(t.name)} · step ${i+1} of ${t.steps.length}</div>
+      <div class="action">${esc(lvl>=3 && st.tiny ? st.tiny : st.text)}</div>
+      <div class="meta"><span>Session <b class="mono">${session} min</b></span><span>Stop after: <b>this step</b></span>${t.deadline?`<span>Due <b>${esc(relDay(t.deadline))}</b>${t.deadlineSource==="assumed"?" (assumed)":""}</span>`:""}</div>
+      ${lvl>=2 && st.how ? `<div class="prompt"><div class="lvl">HOW TO START</div>${esc(st.how)}</div>`:""}
+      <p class="why"><strong>Why this:</strong> ${esc(top.length? top[0][0].toUpperCase()+joinWords(top).slice(1) : "It's the most useful next move")}.${esc(entryLine)}${esc(deferLine)}</p>
+      <details><summary>What finished looks like</summary>${dodBlock(t)}</details>
+      <div class="cta">
+        <button class="btn primary big" data-act="start" data-step="${esc(key)}">Start · ${session} min</button>
+        <button class="btn ghost" data-act="stuck">I'm stuck</button>
+        <button class="btn ghost" data-act="not-this">Not this</button>
+      </div>
+      ${ui.notThis ? notThisPanel(t, R) : ""}
+    </article>`;
+  }
+  const routine = S.prefs.routines[0];
+  const cue = routine ? `<div class="cue"><span class="label">Anchor</span><span>${esc(routine.cue)} → ${esc(routine.action)}.</span></div>` : "";
+  return head + examples + card + `<section>${cue}</section>` + doseList() + `
+    <div class="footer-links"><button class="btn ghost" data-act="offtrack">I'm off track: rebuild my day</button><button class="btn ghost" data-tab="week">See the week</button></div>`;
+}
+function dodBlock(t){
+  const d = t.dod||{};
+  return `<div class="small muted" style="margin-top:8px"><b style="color:var(--ink)">${esc(d.outcome||"")}</b>${d.deliverable?` · ${esc(d.deliverable)}`:""}</div>
+    <ul class="dod">${(d.criteria||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul>
+    <div class="dodnote">${esc(d.quality||"")} ${esc(d.scope||"")}<br><b>Stopping point:</b> ${esc(d.stop||"")}</div>`;
+}
+function notThisPanel(t, R){
+  const alts = R.filter(r=>r.t.id!==t.id).slice(0,2);
+  return `<div class="prompt" style="border-style:solid">
+    <div class="lvl">CORRECT THE RECOMMENDATION</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" data-act="skip-today" data-id="${t.id}">Not today</button>
+      <button class="btn" data-act="shrink">Too big, make it smaller</button>
+      <button class="btn" data-act="edit-task" data-id="${t.id}">Deadline or details are wrong</button>
+    </div>
+    ${alts.length?`<div class="small muted" style="margin-top:10px">Or switch to:</div><div class="stack" style="margin-top:6px;gap:6px">${alts.map(a=>{ const st=a.t.steps.find(s=>!s.done); return `<button class="btn" style="text-align:left" data-act="switch" data-id="${a.t.id}">${chip(a.t.area)} ${esc(st.text)} <span class="muted small">· ${esc(a.factors[0]?a.factors[0].text:"also useful")}</span></button>`; }).join("")}</div>`:""}
+  </div>`;
+}
+function doseList(){
+  const items = S.plan.items;
+  const req = items.filter(it=>!it.brk && it.required), opt = items.filter(it=>!it.brk && !it.required);
+  const done = req.filter(it=>stepOf(it).st.done).length;
+  const n = nextItem();
+  const row = it => {
+    if(it.brk) return `<div class="item brk"><span></span><div class="t"><span>${esc(it.label||(it.min+"-minute reset"))}</span></div><span class="mono small muted">${it.min}m</span></div>`;
+    const {t, st} = stepOf(it); const d = st.done;
+    return `<div class="item ${d?"done":""} ${n&&n.stepId===it.stepId?"current":""}">
+      <button class="check" data-act="toggle-step" data-step="${it.stepId}" aria-label="${d?"Mark not done":"Mark done"}: ${esc(st.text)}">${d?"✓":""}</button>
+      <div class="t"><span>${esc(st.text)}</span><small><span style="color:${areaVar(t.area)}">●</span> ${esc(t.name)}${it.kind?` · ${esc(it.kind)}`:""}</small></div>
+      <span class="mono small muted">${it.min}m</span></div>`;
+  };
+  const reqMin = req.reduce((a,it)=>a+it.min,0);
+  return `<section>
+    <div class="dose-head"><div><h3 style="font-size:20px">Today's dose</h3><div class="small muted">The minimum that counts as a good day: ${req.length} step${req.length===1?"":"s"}, about ${reqMin} min. ${S.plan.cap-S.plan.usable>0?`${S.plan.cap-S.plan.usable} min kept free as buffer.`:""}</div></div>
+    <div class="row" style="flex:1;max-width:240px"><div class="bar"><i style="width:${req.length?done/req.length*100:0}%"></i></div><span class="mono small">${done}/${req.length}</span></div></div>
+    <div class="dose" style="margin-top:10px">${items.filter(it=>it.required || (it.brk && !it.label)).filter((it,ix,arr)=>!(it.brk && ix===arr.length-1)).map(row).join("") || `<div class="empty">Nothing required today.</div>`}</div>
+    ${opt.length?`<details><summary>Optional, only if you want (${opt.length})</summary><div class="dose" style="margin-top:8px">${opt.map(row).join("")}</div><p class="small muted">Skipping these is not falling behind.</p></details>`:""}
+  </section>`;
+}
+
+/* ---------- RECOVERY ---------- */
+function viewRecovery(){
+  const r = S.recovery;
+  const passed = S.tasks.filter(t=>t.status!=="done" && t.deadline && daysUntil(t.deadline)<0 && !t.pastDue);
+  const ahead = S.tasks.filter(t=>t.status!=="done" && t.deadline && daysUntil(t.deadline)>=0 && daysUntil(t.deadline)<=7);
+  const title = r.reason==="inactive" ? "Welcome back." : r.reason==="manual" ? "Let's reset the day." : "Yesterday didn't go to plan. That's information, not failure.";
+  return `<div class="rest" style="margin-top:18px">
+    <div class="label">Restart</div>
+    <h2 style="font-size:30px;margin-top:6px">${esc(title)}</h2>
+    <p>You don't need to catch up on everything. I'll recalculate what still matters and give you one place to start. Your progress is all still here${S.xp?` (${S.xp} XP)`:""}.</p>
+    ${passed.length?`<hr><div class="label">One thing to check</div>${passed.slice(0,3).map(t=>`<div class="q" style="margin-top:8px"><b>${esc(t.name)}</b> was due ${esc(relDay(t.deadline))}. Is it still needed?
+      <div class="row" style="margin-top:8px"><button class="btn" data-act="pd-keep" data-id="${t.id}">Yes, still do it</button><button class="btn" data-act="pd-handled" data-id="${t.id}">Already handled</button><button class="btn ghost" data-act="pd-drop" data-id="${t.id}">Drop it</button></div></div>`).join("")}`:""}
+    <hr>
+    <div class="label">How much do you have in you today?</div>
+    <div class="stack" style="margin-top:10px;gap:8px">
+      <button class="btn" style="text-align:left" data-act="rebuild" data-mode="full"><b>Normal day</b> <span class="muted small">· about ${Math.round(capFor(todayISO())*.8)} min, deadlines protected</span></button>
+      <button class="btn" style="text-align:left" data-act="rebuild" data-mode="light"><b>Light day</b> <span class="muted small">· about ${Math.round(capFor(todayISO())*.48)} min, the essentials only</span></button>
+      <button class="btn primary" style="text-align:left" data-act="rebuild" data-mode="min"><b>Just the minimum</b> <span style="opacity:.85" class="small">· one small step per priority</span></button>
+    </div>
+    ${ahead.length?`<p class="small muted" style="margin-top:14px">Still protected this week: ${ahead.map(t=>esc(t.name)+" ("+esc(relDay(t.deadline))+")").join(", ")}.</p>`:""}
+  </div>`;
+}
+
+/* ---------- WEEK ---------- */
+function viewWeek(){
+  if(S.weekDate!==todayISO()) buildWeek();
+  const days = S.week;
+  return `<section><h2 style="font-size:26px">This week</h2>
+    <p class="muted">Each day has a main focus so you never have to decide which part of life gets attention. Bars show planned work against the time you have; the rest stays free as buffer.</p>
+    <div class="week" style="margin-top:12px">${days.map((d,i)=>{
+      const c = d.rest ? "var(--a-rest)" : areaVar(d.primary);
+      const pct = Math.min(100, d.planned/d.cap*100);
+      return `<div class="wday ${i===0?"today":""}" style="--c:${c}">
+        <div class="dn">${i===0?"Today":WD[parseISO(d.date).getDay()].slice(0,3)}<div class="small muted" style="font-weight:400">${parseISO(d.date).getDate()} ${MO[parseISO(d.date).getMonth()]}</div></div>
+        <div class="prim">${esc(d.rest?"Recovery & light reset":d.primary)}</div>
+        ${d.secondary?`<div class="sec">+ ${esc(d.secondary)}</div>`:""}
+        <div class="cap" title="${d.planned} of ${d.cap} min"><i style="width:${pct}%;background:var(--c)"></i></div>
+        <div class="small muted mono">${d.planned}/${d.cap} min</div>
+        ${d.sessions.map(s=>`<div class="sess" style="--c:${areaVar(s.area)}">${esc(s.task)} · ${s.min}m</div>`).join("")}
+        ${d.deadlines.map(n=>`<div class="dl">Due: ${esc(n)}</div>`).join("")}
+      </div>`;}).join("")}</div>
+  </section>
+  <section><h3>Your time and routines</h3>
+    <div class="grid2">
+      ${[1,2,3,4,5,6,0].map(w=>`<label class="field">${WD[w]}<select data-cap="${w}" id="cap-${w}">${[0,30,45,60,90,120,150,180,240,300].map(m=>`<option value="${m}" ${S.prefs.capacity[w]==m?"selected":""}>${m?m+" min available":"Day off"}</option>`).join("")}</select></label>`).join("")}
+      <label class="field">Rest day<select id="restday" data-pref="restDay">${[0,1,2,3,4,5,6].map(w=>`<option value="${w}" ${S.prefs.restDay==w?"selected":""}>${WD[w]}</option>`).join("")}</select></label>
+      <label class="field">Order of the day<select id="seqpref" data-pref="sequence"><option value="easy-first" ${S.prefs.sequence==="easy-first"?"selected":""}>Easy start, then harder work</option><option value="hard-first" ${S.prefs.sequence==="hard-first"?"selected":""}>Hardest thing first</option></select></label>
+    </div>
+    <div class="label" style="margin-top:18px">Habit anchors</div>
+    <p class="small muted">Tie a step to something you already do. "After coffee" works better than "at 9:00".</p>
+    <div class="stack" style="gap:6px">${S.prefs.routines.map(r=>`<div class="row"><span class="cue" style="flex:1;min-width:0">${esc(r.cue)} → ${esc(r.action)}</span><button class="btn ghost" data-act="del-routine" data-id="${r.id}" aria-label="Remove anchor">Remove</button></div>`).join("")}</div>
+    <form class="row" id="routine-form" style="margin-top:8px"><input id="r-cue" placeholder="After lunch" style="flex:1;min-width:140px"><input id="r-act" placeholder="begin the startup session" style="flex:2;min-width:180px"><button class="btn">Add anchor</button></form>
+  </section>`;
+}
+
+/* ---------- ALL WORK ---------- */
+function viewWork(){
+  const f = S.week[0];
+  const groups = {};
+  S.tasks.forEach(t=>(groups[t.area]=groups[t.area]||[]).push(t));
+  if(!S.tasks.length) return `<div class="empty"><h2>No work captured yet</h2><p>Use Capture to add whatever's on your mind.</p></div>`;
+  return `<section><h2 style="font-size:26px">All work</h2><p class="muted">You don't need this screen to get through a day. It's here to correct anything I got wrong.</p>
+  ${Object.entries(groups).map(([a,ts])=>`<div class="area-h">${chip(a)}<span class="small muted">${ts.filter(t=>t.status!=="done").length} open</span></div>
+    ${ts.sort((x,y)=>(x.status==="done")-(y.status==="done")).map(t=>{ const sc=scoreTask(t,f); const dn=t.steps.filter(s=>s.done).length; const open=ui.editing===t.id;
+      return `<div class="trow">
+        <div class="trow-top"><span class="n">${esc(t.name)}${t.status==="done"?` <span class="tag">Done</span>`:""}${isBlocked(t)?` <span class="tag">Waiting on another task</span>`:""}</span>
+        <span class="row small">${t.deadline?`<span class="tag ${daysUntil(t.deadline)<=1?"warn":""}">Due ${esc(relDay(t.deadline))}${t.deadlineSource==="assumed"?"?":""}</span>`:""}<span class="mono muted">${dn}/${t.steps.length} steps</span><span class="tag mono" title="Priority score">P ${sc.score}</span>
+        <button class="btn ghost" data-act="${open?"close-edit":"edit-task"}" data-id="${t.id}">${open?"Close":"Edit"}</button></span></div>
+        ${open?editForm(t):""}
+      </div>`;}).join("")}`).join("")}
+  </section>`;
+}
+function seg(field, id, val){ return `<span class="seg" role="group">${[1,2,3].map(v=>`<button type="button" data-act="seg" data-id="${id}" data-field="${field}" data-v="${v}" aria-pressed="${val===v}">${LVL[v-1]}</button>`).join("")}</span>`; }
+function editForm(t){
+  return `<form class="edit" data-id="${t.id}" id="edit-${t.id}">
+    <div class="grid2">
+      <label class="field">Name<input id="e-name-${t.id}" name="name" value="${esc(t.name)}"></label>
+      <label class="field">Area<select id="e-area-${t.id}" name="area">${Object.keys(AREAS).map(a=>`<option ${a===t.area?"selected":""}>${a}</option>`).join("")}</select></label>
+      <label class="field">Deadline<input type="date" id="e-dl-${t.id}" name="deadline" value="${t.deadline||""}"></label>
+      <label class="field">Must happen after<select id="e-dep-${t.id}" name="dep"><option value="">Nothing</option>${S.tasks.filter(x=>x.id!==t.id).map(x=>`<option value="${x.id}" ${(t.dependsOn||[]).includes(x.id)?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+    </div>
+    <div class="grid2">
+      <div class="field">Importance to long-term goals ${seg("importance",t.id,t.importance)}</div>
+      <div class="field">Consequence if missed ${seg("consequence",t.id,t.consequence)}</div>
+      <div class="field">How demanding ${seg("difficulty",t.id,t.difficulty)}</div>
+      <div class="field">How hard to start ${seg("friction",t.id,t.friction)}</div>
+    </div>
+    <label class="row small" style="margin-top:10px"><input type="checkbox" name="waiting" id="e-w-${t.id}" ${t.othersWaiting?"checked":""}> Someone else is waiting on this</label>
+    <div class="grid2">
+      <label class="field">What finished looks like (one per line)<textarea rows="5" id="e-dod-${t.id}" name="criteria">${esc((t.dod.criteria||[]).join("\n"))}</textarea></label>
+      <label class="field">Steps (one per line, “step | minutes”)<textarea rows="5" id="e-steps-${t.id}" name="steps">${esc(t.steps.map(s=>`${s.done?"[x] ":""}${s.text} | ${s.min}`).join("\n"))}</textarea></label>
+    </div>
+    <label class="field" style="margin-top:10px">Stopping point<input id="e-stop-${t.id}" name="stop" value="${esc(t.dod.stop||"")}"></label>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary">Save changes</button>
+      <button type="button" class="btn" data-act="redecompose" data-id="${t.id}">${aiState==="ready"?"Re-plan steps with Claude":"Reset steps to a template"}</button>
+      <button type="button" class="btn ghost" data-act="${t.status==="done"?"reopen":"complete-task"}" data-id="${t.id}">${t.status==="done"?"Reopen":"Mark whole task done"}</button>
+      <button type="button" class="btn ghost" data-act="ask-delete" data-id="${t.id}">Delete</button>
+      ${ui.confirmDel===t.id?`<span class="row small">Delete for good? <button type="button" class="btn" data-act="delete" data-id="${t.id}">Yes, delete</button></span>`:""}
+    </div>
+  </form>`;
+}
+
+/* ---------- PROGRESS ---------- */
+function viewProgress(){
+  const M = S.metrics;
+  const ttfa = median(M.ttfa.slice(-20));
+  const acc = M.shown ? Math.round(M.accepted/M.shown*100) : null;
+  const doseRate = (()=>{ const days=Object.keys(M.planned).filter(d=>d<todayISO()); if(!days.length) return null; return Math.round(M.doseDays.filter(d=>d<todayISO()).length/days.length*100); })();
+  const rec = median(M.recoveries.slice(-10));
+  const learnRows = Object.entries(S.learn).filter(([a,l])=>l.n>0);
+  const sl = sessionLen();
+  return `<section><div class="row" style="justify-content:space-between"><h2 style="font-size:26px">Progress</h2><span class="xp" style="font-size:18px">★ <b>${S.xp}</b> XP</span></div>
+  <p class="muted">Progress never resets. Missed days don't cost you anything here.</p>
+  <h3 style="margin-top:18px">Reward bank</h3>
+  <div class="dose" style="margin-top:8px">${S.rewards.map(r=>`<div class="reward-row"><div><b>${esc(r.name)}</b> <span class="small muted">· ${r.minutes} min</span></div><div class="row"><span class="mono small">${r.cost} XP</span><button class="btn ${S.xp>=r.cost?"reward":""}" data-act="redeem" data-id="${r.id}" ${S.xp>=r.cost?"":"disabled"}>${S.xp>=r.cost?"Take it":"Not yet"}</button><button class="btn ghost" data-act="del-reward" data-id="${r.id}" aria-label="Remove reward">×</button></div></div>`).join("")}</div>
+  <form class="row" id="reward-form" style="margin-top:8px"><input id="rw-name" placeholder="A walk outside" style="flex:2;min-width:160px"><input id="rw-cost" type="number" min="5" step="5" value="40" style="width:90px" aria-label="Cost in XP"><input id="rw-min" type="number" min="1" value="15" style="width:90px" aria-label="Minutes"><button class="btn">Add reward</button></form>
+  <p class="small muted">Rest is never something you have to earn. These are extras.</p>
+
+  <h3 style="margin-top:24px">Is it working?</h3>
+  <div class="metrics" style="margin-top:8px">
+    <div class="metric"><div class="label">Time to first action</div><div class="v">${ttfa==null?"–":fmtDur(ttfa)}</div><div class="d">From seeing a step to pressing Start (median)</div></div>
+    <div class="metric"><div class="label">Recommendations taken</div><div class="v">${acc==null?"–":acc+"%"}</div><div class="d">${M.accepted} started, ${M.overridden} corrected</div></div>
+    <div class="metric"><div class="label">Dose days</div><div class="v">${doseRate==null?(M.doseDays.includes(todayISO())?"Today ✓":"–"):doseRate+"%"}</div><div class="d">Days the minimum got done</div></div>
+    <div class="metric"><div class="label">Back on track in</div><div class="v">${rec==null?"–":fmtDur(rec)}</div><div class="d">From restart to the next real step</div></div>
+  </div>
+  <h3 style="margin-top:24px">What I've learned about you</h3>
+  <div class="stack small" style="margin-top:8px">
+    ${learnRows.length? learnRows.map(([a,l])=>`<div class="row" style="justify-content:space-between"><span>${chip(a)} steps seem to take about <b>${l.r.toFixed(1)}×</b> my first estimate <span class="muted">(${l.n} session${l.n>1?"s":""})</span></span><button class="btn ghost" data-act="reset-learn" data-area="${esc(a)}">That's wrong, reset</button></div>`).join("") : `<p class="muted">Nothing yet. Time a few steps and I'll start adjusting estimates.</p>`}
+    ${sl?`<div>Your sessions tend to last about <b>${sl} min</b>, so I'll lean toward that length.</div>`:""}
+    ${Object.entries(S.promptStats).filter(([a,v])=>v.length>=2).map(([a,v])=>`<div>${chip(a)} you usually start ${median(v)<=1.5?"with just the step shown":"after a bit more guidance"}.</div>`).join("")}
+  </div>
+  <h3 style="margin-top:24px">Your data</h3>
+  <p class="small muted">Your tasks stay private to you. ${cloud?"They're saved to your account.":"They're saved in this browser."}</p>
+  <div class="row"><button class="btn" data-act="export">Copy my data as JSON</button><button class="btn ghost" data-act="ask-reset">Delete everything</button>
+  ${ui.confirmReset?`<span class="row small">This removes every task and all progress. <button class="btn" data-act="reset-all">Yes, delete everything</button></span>`:""}</div>
+  <textarea id="export-box" rows="4" readonly hidden style="margin-top:10px"></textarea>
+  </section>`;
+}
+const fmtDur = ms => { const s=Math.round(ms/1000); if(s<90) return s+"s"; const m=Math.round(s/60); if(m<90) return m+" min"; return (m/60).toFixed(1)+" h"; };
+
+/* ============ EXECUTION MODE ============ */
+let tick = null;
+function openExec(stepId, opts={}){
+  const it = S.plan.items.find(x=>x.stepId===stepId) || {stepId, taskId:S.tasks.find(t=>t.steps.some(s=>s.id===stepId)).id};
+  const {t, st} = stepOf(it);
+  const level = opts.level || startLevel(t);
+  ui.exec = {taskId:t.id, stepId, level, running:false, startedAt:null, elapsed:0, planned:(level>=3 ? 2 : (opts.min || est(t,st)))*60, mode:opts.mode||"step", tiny:level>=3, showAll:false};
+  if(opts.autostart) startTimer();
+  renderExec();
+}
+function startTimer(){
+  const e = ui.exec; if(e.running) return;
+  e.running = true; e.startedAt = Date.now();
+  if(!e.loggedStart){
+    e.loggedStart = true;
+    const t = S.tasks.find(x=>x.id===e.taskId);
+    if(S.recShownAt){ S.metrics.ttfa.push(Date.now()-S.recShownAt); S.recShownAt=null; }
+    S.metrics.accepted++;
+    (S.promptStats[t.area] = S.promptStats[t.area]||[]).push(e.level);
+    if(S.lastDisruption){ S.metrics.recoveries.push(Date.now()-S.lastDisruption); S.lastDisruption=null; }
+    const avoided = t.deferrals>0 || t.friction===3;
+    if(!t.steps.some(s=>s.done) || avoided) award(avoided?10:5, avoided?"You started something hard to start":"You started");
+    e.session = {id:uid(), taskId:t.id, area:t.area, stepId:e.stepId, planned:Math.round(e.planned/60), start:Date.now(), level:e.level};
+    save();
+  }
+  clearInterval(tick); tick = setInterval(updateTimer, 500); renderExec();
+}
+function pauseTimer(){ const e=ui.exec; if(!e.running) return; e.elapsed += (Date.now()-e.startedAt)/1000; e.running=false; clearInterval(tick); renderExec(); }
+function elapsedSec(){ const e=ui.exec; return e.elapsed + (e.running ? (Date.now()-e.startedAt)/1000 : 0); }
+function updateTimer(){
+  const e = ui.exec; if(!e) return clearInterval(tick);
+  const left = e.planned - elapsedSec();
+  const txt = $("#ring-t"), fg = $("#ring-fg"), msg = $("#timer-msg");
+  if(txt) txt.textContent = fmtClock(left);
+  if(fg){ const C=2*Math.PI*56; fg.style.strokeDashoffset = C*(1-clamp(elapsedSec()/e.planned,0,1)); }
+  if(left<=0 && !e.overNotified){ e.overNotified = true; if(msg) msg.innerHTML = e.mode==="break" ? "Break's over. Your step is waiting, and it's a small one." : "Time's up. You can stop here, or keep going if it's flowing."; }
+  if(e.mode==="body" && msg && !e.overNotified){ const m=Math.floor(elapsedSec()/60); if(m>0 && m%5===0) msg.textContent = `Still here with you. ${Math.max(0,Math.ceil(left/60))} min left.`; }
+}
+const fmtClock = s => { const neg=s<0; s=Math.abs(Math.round(s)); return (neg?"+":"")+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+function finishStep(){
+  const e = ui.exec; const t = S.tasks.find(x=>x.id===e.taskId); const st = t.steps.find(s=>s.id===e.stepId);
+  const actual = elapsedSec()/60; pauseTimer(); clearInterval(tick);
+  if(!st.done){
+    st.done = true; st.doneAt = Date.now();
+    if(actual>=1 && !e.tiny) learnFrom(t, st, actual);
+    if(e.session){ Object.assign(e.session, {end:Date.now(), actual:Math.round(actual), completed:true}); S.sessions.push(e.session); }
+    let msg = "Step done";
+    if(t.steps.every(s=>s.done)){ t.status="done"; t.doneAt=Date.now(); award(20, `Milestone reached: ${t.name}`); msg=null; }
+    else award(5, msg);
+    if(doseDone() && !S.metrics.doseDays.includes(todayISO())){ S.metrics.doseDays.push(todayISO()); setTimeout(()=>award(25, "Today's dose is complete"), 1600); if(new Date().getHours()<15) setTimeout(()=>award(10,"Ahead of schedule bonus"), 3400); }
+    save();
+  }
+  const next = nextItem();
+  const sameTask = next && next.taskId===t.id;
+  const idx = S.plan.items.findIndex(x=>x.stepId===e.stepId);
+  const brk = S.plan.items[idx+1] && S.plan.items[idx+1].brk ? S.plan.items[idx+1] : null;
+  ui.exec = {...e, finished:true, next, sameTask, brk, running:false};
+  renderExec();
+}
+function closeExec(){
+  const e = ui.exec;
+  if(e && e.session && !e.finished && elapsedSec()>30){ Object.assign(e.session,{end:Date.now(), actual:Math.round(elapsedSec()/60), completed:false, interrupted:true}); S.sessions.push(e.session); save(); }
+  clearInterval(tick); ui.exec = null; $("#layer").innerHTML = ""; render();
+}
+function renderExec(){
+  const e = ui.exec; if(!e){ $("#layer").innerHTML=""; return; }
+  const t = S.tasks.find(x=>x.id===e.taskId); const i = t.steps.findIndex(s=>s.id===e.stepId); const st = t.steps[i];
+  const C = 2*Math.PI*56;
+  let body;
+  if(e.mode==="break"){
+    body = `<div class="label" style="color:var(--reward)">${esc(e.breakName||"Reset")}</div>
+      <div class="stepbig">${e.breakName?"Enjoy it. It's yours.":"Step away for a moment."}</div>
+      <p class="muted">${e.breakName?"I'll be here when the timer ends.":"Water, stretch, look out a window. No phone needed."}</p>
+      ${ringHTML(e, C)}
+      <p id="timer-msg" class="muted"></p>
+      <div class="row" style="margin-top:10px"><button class="btn primary big" data-act="back-to-task">Back to: ${esc(st.text)}</button><button class="btn ghost" data-act="close-exec">Close</button></div>`;
+  } else if(e.finished){
+    const nx = e.next && stepOf(e.next);
+    body = `<div class="label" style="color:var(--reward)">Step done</div>
+      <div class="stepbig">${t.status==="done"?"Milestone reached.":"Nice. That's real progress."}</div>
+      <div class="chain">${t.steps.map(s=>`<i class="${s.done?"d":""}"></i>`).join("")}</div>
+      <p class="muted" style="margin-top:12px">${t.status==="done"?`“${esc(t.name)}” meets its definition of done.`:`${t.steps.filter(s=>s.done).length} of ${t.steps.length} steps of “${esc(t.name)}” are done.`}</p>
+      <div class="stack" style="margin-top:16px">
+        ${e.brk?`<button class="btn reward" data-act="take-break" data-min="${e.brk.min}">Take a ${e.brk.min}-minute reset first</button>`:""}
+        ${nx?`<button class="btn primary big" data-act="exec-next" data-step="${e.next.stepId}" style="text-align:left">Next: ${esc(nx.st.text)} <span style="opacity:.8;font-weight:400">· ${e.next.min} min</span></button>`:`<p><b>That was the last step in today's dose.</b> Everything else is optional.</p>`}
+        <button class="btn ghost" data-act="close-exec">Stop here for now</button>
+      </div>`;
+  } else {
+    const showTiny = e.tiny;
+    const later = t.steps.slice(i+1, e.showAll?undefined:i+3);
+    body = `<div class="row" style="justify-content:space-between">${chip(t.area)}<span class="small muted">${esc(t.name)}</span></div>
+      <div class="chain" style="margin-top:12px" aria-label="Step ${i+1} of ${t.steps.length}">${t.steps.map((s,k)=>`<i class="${s.done?"d":k===i?"c":""}"></i>`).join("")}</div>
+      <div class="small muted" style="margin-top:6px">Step ${i+1} of ${t.steps.length}</div>
+      <div class="stepbig">${esc(showTiny ? (st.tiny || "Do just two minutes of: "+st.text.toLowerCase()) : st.text)}</div>
+      ${e.level>=2 && st.how ? `<div class="prompt"><div class="lvl">EXACTLY WHAT TO DO</div>${esc(st.how)}</div>`:""}
+      ${e.level>=4 ? guidedHTML(t, st) : ""}
+      ${e.level>=5 ? conditionsHTML() : ""}
+      ${ringHTML(e, C)}
+      <p id="timer-msg" class="muted">${e.mode==="body"?"I'm working alongside you. Just keep your hands on this one step.":e.running?"Only this step. Nothing else needs your attention.":`Stop after: ${showTiny?"two minutes":"this step"}. That counts as done.`}</p>
+      <div class="cta">
+        ${e.running?`<button class="btn" data-act="pause">Pause</button>`:`<button class="btn primary big" data-act="go">${e.loggedStart?"Resume":"Start"}</button>`}
+        <button class="btn ${e.running?"primary":""}" data-act="finish">Finished this step</button>
+        ${!e.running?`<button class="btn ghost" data-act="escalate">${e.level>=5?"Still stuck":"I'm stuck"}</button>`:`<button class="btn ghost" data-act="add5">+5 min</button>`}
+      </div>
+      ${later.length?`<div class="label" style="margin-top:22px">Coming up</div><div class="nextsteps">${later.map(s=>`<div>${esc(s.text)}</div>`).join("")}</div>${!e.showAll && t.steps.length>i+3?`<button class="btn ghost small" data-act="show-all">Show all steps</button>`:""}`:""}
+      <details style="margin-top:18px"><summary>What finished looks like</summary>${dodBlock(t)}</details>`;
+  }
+  $("#layer").innerHTML = `<div class="overlay" role="dialog" aria-modal="true" aria-label="Focus mode"><div class="wrap">
+    <div class="row" style="justify-content:space-between"><span class="label">Focus mode</span><button class="btn ghost" data-act="close-exec">Close</button></div>
+    <div style="margin-top:10px">${body}</div></div></div>`;
+  updateTimer();
+}
+function ringHTML(e, C){ return `<div class="timer"><svg class="ring" viewBox="0 0 132 132" role="img" aria-label="Timer"><circle class="bgc" cx="66" cy="66" r="56"/><circle id="ring-fg" class="fg" cx="66" cy="66" r="56" stroke-dasharray="${C}" stroke-dashoffset="${C}" transform="rotate(-90 66 66)"/><text id="ring-t" x="66" y="75" text-anchor="middle">${fmtClock(e.planned-elapsedSec())}</text></svg><div class="small muted">${Math.round(e.planned/60)}-minute ${e.mode==="break"?"break":e.mode==="body"?"session together":"session"}</div></div>`; }
+function guidedHTML(t, st){
+  return `<div class="prompt"><div class="lvl">LET'S DO THE FIRST MINUTE TOGETHER</div>
+    <ol style="margin:6px 0 0;padding-left:20px;display:grid;gap:4px"><li>Put your phone face down, out of reach.</li><li>${esc(st.how || "Open what this step needs.")}</li><li>Press Start below. You only owe it 60 seconds.</li></ol></div>`;
+}
+function conditionsHTML(){
+  return `<div class="prompt"><div class="lvl">CHANGE THE CONDITIONS</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" data-act="cond-short">5-minute session</button>
+      <button class="btn" data-act="cond-body">Work alongside me</button>
+      <button class="btn" data-act="take-break" data-min="2">2-minute reset first</button>
+      <button class="btn" data-act="cond-swap">Swap to something easier</button>
+    </div></div>`;
+}
+const PROMPT_NAMES = ["", "Next action shown", "Specific instructions", "Smaller version", "Guided first minute", "Change the conditions"];
+
+/* ============ CAPTURE ============ */
+function openCapture(){ ui.capture = ui.capture || {text:"", parsed:null, busy:false, err:null}; renderCapture(); setTimeout(()=>{ const ta=$("#cap-text"); if(ta) ta.focus(); }, 30); }
+function renderCapture(){
+  const c = ui.capture; if(!c){ $("#layer").innerHTML=""; return; }
+  $("#layer").innerHTML = `<div class="sheet-back" data-act="close-capture-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Capture">
+    <div class="row" style="justify-content:space-between"><h2 style="font-size:24px">What's on your mind?</h2><button class="btn ghost" data-act="close-capture">Close</button></div>
+    ${!c.parsed?`<p class="muted small">Type it the way you'd say it. No need to organize anything.</p>
+    <textarea id="cap-text" rows="5" placeholder="I need to finish calculus homework by tomorrow, work on the Prosumer MVP, draft my information overload article, and study anthropology.">${esc(c.text)}</textarea>
+    ${c.err?`<p class="small" style="color:var(--a-writing)">${esc(c.err)}</p>`:""}
+    <div class="row" style="margin-top:10px"><button class="btn primary big" data-act="parse" ${c.busy?"disabled":""}>${c.busy?"Sorting it out…":"Sort it out for me"}</button>${aiState!=="ready"?`<span class="small muted">Using built-in rules</span>`:""}</div>`
+    : `<p class="muted small">Here's how I read it. Fix anything that's off, then add it. ${c.parsed.source==="rules"?"(Built-in rules were used, so check the areas and dates.)":""}</p>
+      ${c.parsed.tasks.map((t,i)=>`<div class="parsed">
+        <div class="row"><input type="text" id="p-name-${i}" value="${esc(t.name)}" aria-label="Task name" data-pi="${i}" data-pf="name"><button class="btn ghost" data-act="p-remove" data-i="${i}" aria-label="Remove">Remove</button></div>
+        <div class="row small">
+          <select id="p-area-${i}" data-pi="${i}" data-pf="area" aria-label="Area">${Object.keys(AREAS).map(a=>`<option ${a===t.area?"selected":""}>${a}</option>`).join("")}</select>
+          <label class="row" style="gap:6px">Due <input type="date" id="p-dl-${i}" value="${t.deadline||""}" data-pi="${i}" data-pf="deadline"></label>
+          ${t.deadlineSource==="assumed"?`<span class="tag">date assumed</span>`:""}
+          ${t.othersWaiting?`<span class="tag">someone's waiting</span>`:""}
+        </div></div>`).join("")}
+      ${c.parsed.questions.length?`<div class="stack" style="margin-top:12px;gap:8px">${c.parsed.questions.map((q,i)=>`<div class="q"><b>${esc(q.question)}</b> <span class="muted small">${esc(q.why||"")}</span><input id="q-${i}" style="display:block;margin-top:6px;width:100%" placeholder="Optional. Skip if you don't know." data-qi="${i}"></div>`).join("")}</div>`:""}
+      <div class="row" style="margin-top:14px"><button class="btn primary big" data-act="commit">Add to my plan</button><button class="btn ghost" data-act="reparse">Start over</button></div>`}
+  </div></div>`;
+}
+async function doParse(){
+  const c = ui.capture; c.text = $("#cap-text").value.trim(); if(!c.text) { c.err="Write anything at all, even a few words."; return renderCapture(); }
+  c.busy = true; c.err = null; renderCapture();
+  let r = null;
+  if(aiState==="ready"){ try{ r = await aiParse(c.text); r.source="ai"; }catch(e){ r=null; } }
+  if(!r || !r.tasks.length){ r = ruleParse(c.text); r.source="rules"; }
+  c.busy = false;
+  if(!r.tasks.length){ c.err = "I couldn't find a task in that. Try starting with a verb, like “finish”, “write” or “call”."; return renderCapture(); }
+  c.parsed = r; renderCapture();
+}
+function commitCapture(){
+  const c = ui.capture;
+  document.querySelectorAll("[data-qi]").forEach(el=>{ const q=c.parsed.questions[+el.dataset.qi]; if(el.value.trim()){ const t=c.parsed.tasks.find(x=>x.name===q.task); if(t){ const d=parseDeadline(el.value); if(d && /due|when/i.test(q.question)){ t.deadline=d; t.deadlineSource="stated"; } else t.notes=(t.notes||"")+" "+q.question+" "+el.value; } } });
+  if(S.hasExamples){ S.tasks = S.tasks.filter(t=>!t.example || t.steps.some(s=>s.done)); S.hasExamples=false; }
+  const added = [];
+  c.parsed.tasks.forEach(p=>{
+    const t = Object.assign({id:uid(), createdAt:Date.now(), status:"open", deferrals:0, notes:"", aiDone:false}, p, {dependsOn:[]});
+    Object.assign(t, templateFor(t));
+    if(p.estMin && p.estMin>0){ const sum=t.steps.reduce((a,s)=>a+s.min,0); const k=clamp(p.estMin/sum,.5,2.5); t.steps.forEach(s=>s.min=Math.max(2,Math.round(s.min*k))); }
+    t._depNames = p.dependsOn||[];
+    S.tasks.push(t); added.push(t);
+  });
+  added.forEach(t=>{ t.dependsOn = (t._depNames||[]).map(n=>S.tasks.find(x=>x.name.toLowerCase()===String(n).toLowerCase())).filter(Boolean).map(x=>x.id).filter(id=>id!==t.id); delete t._depNames; });
+  ui.capture = null; $("#layer").innerHTML = "";
+  buildPlan(); save(); tab="today"; render();
+  toast(`Added ${added.length} item${added.length>1?"s":""}. Your plan is updated.`);
+  if(aiState==="ready") decomposeQueue(added);
+}
+async function decomposeQueue(list){
+  for(const t of list){
+    if(t.steps.some(s=>s.done)) continue;
+    try{ const r = await aiDecompose(t); const live=S.tasks.find(x=>x.id===t.id); if(live && !live.steps.some(s=>s.done)){ live.dod=r.dod; live.steps=r.steps; live.aiDone=true; buildPlan(); save(); if(!ui.exec && !ui.capture) render(); } }
+    catch(e){ if(e && (e.code==="rate_limited"||e.code==="not_granted")) break; }
+  }
+}
+
+/* ============ idle prompting on Today (prompt hierarchy without notifications) ============ */
+function armIdle(){
+  clearTimeout(idleTimer);
+  if(tab!=="today" || ui.exec || ui.capture || S.recovery || !nextItem()) return;
+  if(ui.idleLevel>=3) return;
+  idleTimer = setTimeout(()=>{ if(tab==="today" && !ui.exec && !ui.capture){ ui.idleLevel = Math.min(3, ui.idleLevel+1); render(); toast(ui.idleLevel===2?"Here's exactly how to start.":"I made the first step smaller."); } }, ui.idleLevel===1?120000:180000);
+}
+
+/* ============ events ============ */
+document.addEventListener("click", async ev => {
+  const el = ev.target.closest("[data-act],[data-tab]"); if(!el) return;
+  if(el.dataset.tab){ tab = el.dataset.tab; try{ history.replaceState(null,"","#"+tab); }catch(e){} ui.notThis=false; render(); window.scrollTo(0,0); return; }
+  const a = el.dataset.act, id = el.dataset.id;
+  const T = id && S.tasks.find(t=>t.id===id);
+  switch(a){
+    case "capture": openCapture(); break;
+    case "close-capture": ui.capture=null; $("#layer").innerHTML=""; break;
+    case "close-capture-bg": if(ev.target===el){ ui.capture.text = ($("#cap-text")||{}).value ?? ui.capture.text; ui.capture=null; $("#layer").innerHTML=""; } break;
+    case "parse": doParse(); break;
+    case "reparse": ui.capture.parsed=null; renderCapture(); break;
+    case "p-remove": ui.capture.parsed.tasks.splice(+el.dataset.i,1); if(!ui.capture.parsed.tasks.length) ui.capture.parsed=null; renderCapture(); break;
+    case "commit": commitCapture(); break;
+    case "clear-examples": S.tasks = S.tasks.filter(t=>!t.example); S.hasExamples=false; buildPlan(); save(); render(); openCapture(); break;
+    case "start": openExec(el.dataset.step, {level: ui.idleLevel, autostart:true}); break;
+    case "stuck": { const n=nextItem(); openExec(n.stepId, {level: Math.max(2, ui.idleLevel+1)}); break; }
+    case "not-this": ui.notThis = !ui.notThis; if(ui.notThis){ S.metrics.overridden++; save(); } render(); break;
+    case "skip-today": T.deferrals++; S.skipToday[T.id]=todayISO(); ui.notThis=false; buildPlan(); save(); render(); toast("Moved off today. It's still protected for later this week."); break;
+    case "shrink": { const n=nextItem(); const {t,st,i}=stepOf(n); t.steps.splice(i,0,{id:uid(), text:`First 5 minutes of: ${st.text.charAt(0).toLowerCase()+st.text.slice(1)}`, min:5, how:st.how, tiny:st.tiny, done:false}); ui.notThis=false; buildPlan(); save(); render(); toast("Smaller first step ready."); break; }
+    case "switch": { S.skipToday = S.skipToday; const n=nextItem(); const cur=n&&stepOf(n).t; if(cur) S.skipToday[cur.id]=todayISO(); const keep = S.skipToday; buildPlan(); const it = S.plan.items.find(x=>x.taskId===T.id); if(!it){ const st=T.steps.find(s=>!s.done); S.plan.items.unshift({taskId:T.id, stepId:st.id, min:est(T,st), required:true, kind:"Your pick"}); } else { S.plan.items.splice(S.plan.items.indexOf(it),1); it.required=true; S.plan.items.unshift(it); } if(cur) delete S.skipToday[cur.id]; ui.notThis=false; save(); render(); break; }
+    case "edit-task": tab="work"; ui.editing=id; ui.notThis=false; render(); setTimeout(()=>{ const f=document.getElementById("edit-"+id); if(f) f.scrollIntoView({block:"center"}); },30); break;
+    case "close-edit": ui.editing=null; render(); break;
+    case "seg": { const t=S.tasks.find(x=>x.id===id); t[el.dataset.field]=+el.dataset.v; save(); render(); break; }
+    case "toggle-step": { const it=S.plan.items.find(x=>x.stepId===el.dataset.step); const {t,st}=stepOf(it); st.done=!st.done; if(st.done){ award(5,"Step done"); if(t.steps.every(s=>s.done)){ t.status="done"; award(20,`Milestone reached: ${t.name}`);} if(doseDone() && !S.metrics.doseDays.includes(todayISO())){ S.metrics.doseDays.push(todayISO()); setTimeout(()=>award(25,"Today's dose is complete"),1500);} } else { t.status="open"; } save(); render(); break; }
+    case "optional": { const it=S.plan.items.find(x=>!x.brk && !x.required && !stepOf(x).st.done); if(it) openExec(it.stepId); break; }
+    case "done-day": S.doneForDay=todayISO(); save(); render(); break;
+    case "undo-done-day": S.doneForDay=null; save(); render(); break;
+    case "offtrack": S.recovery={reason:"manual", at:Date.now()}; S.lastDisruption=Date.now(); save(); render(); break;
+    case "pd-keep": T.pastDue=true; T.deadline=addDays(todayISO(),1); T.deadlineSource="assumed"; T.consequence=Math.max(2,T.consequence); save(); render(); break;
+    case "pd-handled": T.status="done"; T.steps.forEach(s=>s.done=true); save(); render(); break;
+    case "pd-drop": T.status="done"; T.dropped=true; save(); render(); break;
+    case "rebuild": {
+      const mode = el.dataset.mode; const wasInactive = S.recovery && S.recovery.reason==="inactive";
+      S.recovery=null; S.skipToday={}; S.doneForDay=null; buildPlan(mode); save(); render();
+      award(15, wasInactive?"You came back":"You reset instead of giving up");
+      break; }
+    case "go": startTimer(); break;
+    case "pause": pauseTimer(); break;
+    case "add5": ui.exec.planned += 300; updateTimer(); break;
+    case "finish": finishStep(); break;
+    case "escalate": { const e=ui.exec; e.level=Math.min(5,e.level+1); if(e.level===3){ e.tiny=true; e.planned=120; } toast(PROMPT_NAMES[e.level]); renderExec(); break; }
+    case "show-all": ui.exec.showAll=true; renderExec(); break;
+    case "cond-short": ui.exec.planned=300; ui.exec.tiny=false; startTimer(); break;
+    case "cond-body": ui.exec.mode="body"; ui.exec.planned=Math.max(ui.exec.planned, 25*60); startTimer(); break;
+    case "cond-swap": { const e=ui.exec; const cur=S.tasks.find(x=>x.id===e.taskId); const alt=ranked(S.week[0]).filter(r=>r.t.id!==cur.id).sort((x,y)=>x.t.friction-y.t.friction)[0]; if(alt){ const st=alt.t.steps.find(s=>!s.done); clearInterval(tick); openExec(st.id, {level:2}); toast("Switched to something easier to start."); } else toast("Nothing easier is waiting. Try the 5-minute session."); break; }
+    case "take-break": { const e=ui.exec; const keepStep = e.finished && e.next ? e.next.stepId : e.stepId; clearInterval(tick); ui.exec={taskId:S.tasks.find(t=>t.steps.some(s=>s.id===keepStep)).id, stepId:keepStep, level:e.level, running:false, elapsed:0, planned:(+el.dataset.min)*60, mode:"break"}; ui.exec.running=true; ui.exec.startedAt=Date.now(); tick=setInterval(updateTimer,500); renderExec(); break; }
+    case "back-to-task": { const sid=ui.exec.stepId; clearInterval(tick); openExec(sid); break; }
+    case "exec-next": clearInterval(tick); openExec(el.dataset.step, {autostart:false}); break;
+    case "close-exec": closeExec(); break;
+    case "redeem": { const r=S.rewards.find(x=>x.id===id); if(S.xp<r.cost) break; S.xp-=r.cost; S.xpLog.push({n:-r.cost, why:"Redeemed: "+r.name, at:Date.now()}); save(); const n=nextItem(); const sid = n ? n.stepId : (S.tasks.find(t=>t.status!=="done")||{steps:[{}]}).steps.find(s=>!s.done)?.id; if(sid){ const tid=S.tasks.find(t=>t.steps.some(s=>s.id===sid)).id; ui.exec={taskId:tid, stepId:sid, level:1, running:true, startedAt:Date.now(), elapsed:0, planned:r.minutes*60, mode:"break", breakName:r.name}; tick=setInterval(updateTimer,500); renderExec(); } else { render(); toast("Enjoy it."); } break; }
+    case "del-reward": S.rewards=S.rewards.filter(x=>x.id!==id); save(); render(); break;
+    case "del-routine": S.prefs.routines=S.prefs.routines.filter(x=>x.id!==id); save(); render(); break;
+    case "reset-learn": delete S.learn[el.dataset.area]; buildPlan(); save(); render(); break;
+    case "redecompose": { const t=T; if(aiState==="ready"){ el.disabled=true; el.textContent="Planning…"; try{ const r=await aiDecompose(t); const done=t.steps.filter(s=>s.done); t.dod=r.dod; t.steps=[...done, ...r.steps]; t.aiDone=true; }catch(e){ toast("Claude couldn't plan this right now. Your steps are unchanged."); } } else { const r=templateFor(t); t.dod=r.dod; t.steps=[...t.steps.filter(s=>s.done), ...r.steps]; } buildPlan(); save(); render(); break; }
+    case "complete-task": T.status="done"; T.steps.forEach(s=>s.done=true); award(20,`Milestone reached: ${T.name}`); buildPlan(); save(); render(); break;
+    case "reopen": T.status="open"; save(); render(); break;
+    case "ask-delete": ui.confirmDel=id; render(); break;
+    case "delete": S.tasks=S.tasks.filter(x=>x.id!==id); S.tasks.forEach(x=>x.dependsOn=(x.dependsOn||[]).filter(d=>d!==id)); ui.editing=null; ui.confirmDel=null; buildPlan(); save(); render(); break;
+    case "export": { const box=$("#export-box"); const txt=JSON.stringify(S,null,2); box.hidden=false; box.value=txt; try{ await navigator.clipboard.writeText(txt); toast("Copied to your clipboard."); }catch(e){ box.select(); toast("Select the text below and copy it."); } break; }
+    case "ask-reset": ui.confirmReset=true; render(); break;
+    case "reset-all": { S = seed(); S.tasks=[]; S.hasExamples=false; ui.confirmReset=false; buildPlan(); save(); render(); break; }
+  }
+});
+document.addEventListener("submit", ev => {
+  ev.preventDefault();
+  const f = ev.target;
+  if(f.id==="routine-form"){ const c=$("#r-cue").value.trim(), a=$("#r-act").value.trim(); if(c&&a){ S.prefs.routines.push({id:uid(), cue:c, action:a}); save(); render(); } return; }
+  if(f.id==="reward-form"){ const n=$("#rw-name").value.trim(); if(n){ S.rewards.push({id:uid(), name:n, cost:Math.max(5,+$("#rw-cost").value||40), minutes:Math.max(1,+$("#rw-min").value||15)}); save(); render(); } return; }
+  if(f.classList.contains("edit")){
+    const t = S.tasks.find(x=>x.id===f.dataset.id); const fd = new FormData(f);
+    t.name = fd.get("name").trim()||t.name; t.area = fd.get("area");
+    const dl = fd.get("deadline"); if(dl!==(t.deadline||"")){ t.deadline = dl||null; t.deadlineSource = dl?"stated":null; t.pastDue=false; }
+    t.othersWaiting = !!fd.get("waiting");
+    const dep = fd.get("dep"); t.dependsOn = dep ? [dep] : [];
+    t.dod.criteria = fd.get("criteria").split("\n").map(s=>s.trim()).filter(Boolean);
+    t.dod.stop = fd.get("stop").trim();
+    const old = t.steps;
+    t.steps = fd.get("steps").split("\n").map(s=>s.trim()).filter(Boolean).map((line,ix)=>{ const done=/^\[x\]\s*/i.test(line); line=line.replace(/^\[x\]\s*/i,""); const [txt,m]=line.split("|").map(x=>x.trim()); const prev=old.find(o=>o.text===txt); return {id:prev?prev.id:uid(), text:txt, min:clamp(+m||(prev&&prev.min)||10,1,240), how:prev?prev.how:"", tiny:prev?prev.tiny:"", done}; });
+    if(!t.steps.length) t.steps=[{id:uid(), text:"Decide the first step", min:5, how:"", done:false}];
+    t.status = t.steps.every(s=>s.done) ? "done" : "open";
+    ui.editing=null; buildPlan(); save(); render(); toast("Saved. The plan is recalculated.");
+  }
+});
+document.addEventListener("change", ev => {
+  const el = ev.target;
+  if(el.dataset.cap!==undefined){ S.prefs.capacity[el.dataset.cap] = +el.value; buildPlan(); save(); render(); }
+  if(el.dataset.pref){ S.prefs[el.dataset.pref] = el.dataset.pref==="restDay" ? +el.value : el.value; buildPlan(); save(); render(); }
+  if(el.dataset.pi!==undefined && ui.capture && ui.capture.parsed){ const p=ui.capture.parsed.tasks[+el.dataset.pi]; p[el.dataset.pf]=el.value||null; if(el.dataset.pf==="deadline") p.deadlineSource=el.value?"stated":null; if(el.dataset.pf==="name") p.kind=kindOf(el.value); }
+});
+document.addEventListener("input", ev => { if(ev.target.id==="cap-text" && ui.capture) ui.capture.text = ev.target.value; });
+document.addEventListener("keydown", ev => {
+  if(ev.key==="Escape"){ if(ui.capture){ ui.capture=null; $("#layer").innerHTML=""; } else if(ui.exec) closeExec(); }
+  if((ev.metaKey||ev.ctrlKey) && ev.key==="Enter" && ui.capture && !ui.capture.parsed) doParse();
+});
+window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if(["today","week","work","progress"].includes(h)){ tab=h; render(); } });
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && S.plan && S.plan.date!==todayISO()){ dailyChecks(); render(); } });
+
+dailyChecks();
+render();
+</script>
