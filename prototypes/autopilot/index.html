@@ -383,18 +383,11 @@ Reply with only JSON: {"outcome":"","deliverable":"","criteria":["",""],"quality
 }
 
 /* ============ state ============ */
-const KEY = "autopilot.v1";
+const KEY = "autopilot.v2";
 function seed(){
-  const T = (o) => { const t = Object.assign({id:uid(), createdAt:Date.now(), status:"open", deferrals:0, dependsOn:[], notes:"", example:true, aiDone:false}, o); Object.assign(t, templateFor(t)); return t; };
-  const tasks = [
-    T({name:"Calculus Homework 3", area:"University", kind:"problem", deadline:addDays(todayISO(),1), deadlineSource:"stated", importance:2, consequence:3, othersWaiting:false, difficulty:3, friction:3}),
-    T({name:"Prosumer MVP: onboarding flow", area:"Startup", kind:"build", deadline:addDays(todayISO(),9), deadlineSource:"assumed", importance:3, consequence:2, othersWaiting:true, difficulty:3, friction:2}),
-    T({name:"Draft the information overload article", area:"Writing", kind:"write", deadline:addDays(todayISO(),5), deadlineSource:"assumed", importance:2, consequence:1, othersWaiting:false, difficulty:2, friction:3}),
-    T({name:"Anthropology reading: Geertz, Thick Description", area:"Independent study", kind:"study", deadline:null, importance:2, consequence:1, othersWaiting:false, difficulty:2, friction:1}),
-    T({name:"Pay phone bill", area:"Personal", kind:"admin", deadline:addDays(todayISO(),3), deadlineSource:"stated", importance:1, consequence:2, othersWaiting:false, difficulty:1, friction:1}),
-  ];
+  const tasks = [];
   return {
-    v:1, tasks, xp:0, xpLog:[], plan:null, week:null, weekDate:null, lastOpen:Date.now(), updatedAt:0, hasExamples:true,
+    v:1, tasks, xp:0, xpLog:[], plan:null, week:null, weekDate:null, lastOpen:Date.now(), updatedAt:0, hasExamples:false,
     prefs:{ capacity:{0:45,1:150,2:150,3:150,4:150,5:120,6:180}, restDay:0, sequence:"easy-first", session:null,
             routines:[{id:uid(), cue:"After making coffee", action:"open today's first step"},{id:uid(), cue:"Before bed", action:"glance at tomorrow's first action"}] },
     rewards:[{id:uid(), name:"10 minutes of free browsing", cost:30, minutes:10},{id:uid(), name:"One episode of a show", cost:80, minutes:30},{id:uid(), name:"Coffee out", cost:120, minutes:30}],
@@ -418,7 +411,7 @@ async function pushCloud(){ if(!cloud) return; try{ await cloud.ref.set({json:JS
     const [db,user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
     if(!db || !user) return;
     const id = await user.id(); if(!id) return;
-    const ref = db.doc("data/users/"+id+"/autopilot");
+    const ref = db.doc("data/users/"+id+"/autopilot2");
     const snap = await ref.get();
     cloud = {ref, ok:true};
     if(snap.exists){ const d = snap.data(); if(d && d.json){ const remote = JSON.parse(d.json); if((remote.updatedAt||0) > (S.updatedAt||0)){ S = remote; dailyChecks(); render(); } } }
@@ -654,7 +647,7 @@ function viewToday(){
      ${f.secondary?`<span class="muted small">then</span> ${chip(f.secondary)}`:""}
      ${S.plan.mode!=="full"?`<span class="tag">${S.plan.mode==="light"?"Light plan":"Minimum plan"}</span>`:""}</div>`;
   const examples = S.hasExamples ? `<div class="banner"><span>You're looking at an <b>example workload</b>. Capture your own to replace it.</span><span class="row"><button class="btn" data-act="capture">Capture my work</button><button class="btn ghost" data-act="clear-examples">Clear examples</button></span></div>` : "";
-  if(!S.tasks.some(t=>t.status!=="done")) return head + examples + `<div class="rest"><h2>Nothing is waiting on you.</h2><p class="muted">Tell me what's on your mind and I'll turn it into a plan.</p><button class="btn primary big" data-act="capture">Capture what's on my mind</button></div>`;
+  if(!S.tasks.some(t=>t.status!=="done")) return head + examples + `<div class="rest"><div class="label">Start here</div><h2 style="margin-top:6px">What's on your plate?</h2><p class="muted">Dump everything in one go: classes, projects, writing, errands, deadlines. Don't organize it. I'll sort it into a week, pick today's focus and give you one first step.</p><button class="btn primary big" data-act="capture">Capture what's on my mind</button></div>`;
   if(S.doneForDay===todayISO()) return head + `<div class="rest"><div class="label">Done for today</div><h2 style="margin-top:6px">You stopped on purpose. That counts.</h2><p class="muted">Tomorrow's first step is already chosen. Nothing else is expected today.</p><div class="row"><button class="btn" data-act="undo-done-day">Actually, I want to keep going</button></div></div>` + doseList();
   const n = nextItem();
   let card;
